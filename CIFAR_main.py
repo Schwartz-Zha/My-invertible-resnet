@@ -220,8 +220,10 @@ def main():
 
 
     # setup logging with visdom
-    viz = visdom.Visdom(port=args.vis_port, server="http://" + args.vis_server)
-    assert viz.check_connection(), "Could not make visdom"
+    # viz = visdom.Visdom(port=args.vis_port, server="http://" + args.vis_server)
+    # assert viz.check_connection(), "Could not make visdom"
+
+    viz = None
 
     if args.deterministic:
         trainloader = torch.utils.data.DataLoader(trainset, batch_size=args.batch,

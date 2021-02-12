@@ -125,7 +125,8 @@ def train(args, model, optimizer, epoch, trainloader, trainset, viz, use_cuda, t
                         sigma = model.state_dict()[k[:-5] + '_sigma']
                         sigmas.append(sigma.item())
                 sigmas = np.array(sigmas)
-                line_plot(viz, "sigma all layers", cur_iter, sigmas)
+                if viz is not None:
+                    line_plot(viz, "sigma all layers", cur_iter, sigmas)
                 
         loss.backward()  # Backward Propagation
         optimizer.step()  # Optimizer update
@@ -139,9 +140,10 @@ def train(args, model, optimizer, epoch, trainloader, trainset, viz, use_cuda, t
                                  % (epoch, args.epochs, batch_idx+1,
                                     (len(trainset)//args.batch)+1, loss,  mean_trace, mean_logpz))
                 sys.stdout.flush()
-                line_plot(viz, "bits/dim", cur_iter, loss.item())
-                line_plot(viz, "logp(z)", cur_iter, mean_logpz)
-                line_plot(viz, "log|df/dz|", cur_iter, mean_trace)
+                if viz is not None:
+                    line_plot(viz, "bits/dim", cur_iter, loss.item())
+                    line_plot(viz, "logp(z)", cur_iter, mean_logpz)
+                    line_plot(viz, "log|df/dz|", cur_iter, mean_trace)
                 # file logging
                 log_dict = {"iter": cur_iter, "loss": loss.item(), "logpz": mean_logpz, "logdet": mean_trace, "epoch": epoch}
                 train_log.write("{}\n".format(json.dumps(log_dict)))
@@ -151,7 +153,8 @@ def train(args, model, optimizer, epoch, trainloader, trainset, viz, use_cuda, t
                     # grad_norm_2 = sum((p.grad.norm()**2).item() for p in model.parameters() if p.grad is not None)
                     grad_norm_inf = max(p.grad.data.abs().max().item() for p in model.parameters() if p.grad is not None)
                     # line_plot(viz, "grad_norm_2", cur_iter, grad_norm_2)
-                    line_plot(viz, "grad_norm_inf", cur_iter, grad_norm_inf)
+                    if viz is not None:
+                        line_plot(viz, "grad_norm_inf", cur_iter, grad_norm_inf)
                     # log actnorm scaling
                     if not args.noActnorm:
                         actnorm_scales = []
@@ -168,15 +171,17 @@ def train(args, model, optimizer, epoch, trainloader, trainset, viz, use_cuda, t
                         actnorm_scales = np.array(actnorm_scales)
                         actnorm_scales_min = np.array(actnorm_scales_min)
                         actnorm_l2 = np.array(actnorm_l2)
-                        line_plot(viz, "max actnorm scale per layer", cur_iter, actnorm_scales)
-                        line_plot(viz, "min actnorm scale per layer", cur_iter, actnorm_scales_min)
-                        line_plot(viz, "l2 norm of actnorm scale per layer", cur_iter, actnorm_l2)  
+                        if viz is not None:
+                            line_plot(viz, "max actnorm scale per layer", cur_iter, actnorm_scales)
+                            line_plot(viz, "min actnorm scale per layer", cur_iter, actnorm_scales_min)
+                            line_plot(viz, "l2 norm of actnorm scale per layer", cur_iter, actnorm_l2)
                     # learned prior logging
                     if not args.fixedPrior:
                         prior_scales_max = torch.max(model.state_dict()['module.prior_logstd'])
                         prior_scales_min = torch.min(model.state_dict()['module.prior_logstd'])
-                        line_plot(viz, "max prior scale", cur_iter, prior_scales_max.item())
-                        line_plot(viz, "min prior scale", cur_iter, prior_scales_min.item())  
+                        if viz is not None:
+                            line_plot(viz, "max prior scale", cur_iter, prior_scales_max.item())
+                            line_plot(viz, "min prior scale", cur_iter, prior_scales_min.item())
 
         else: # logging for classification
             _, predicted = torch.max(out.data, 1)
@@ -211,7 +216,8 @@ def test(best_result, args, model, epoch, testloader, viz, use_cuda, test_log):
             if batch_idx == 0:
                 x_re = model.module.inverse(z, 10) if use_cuda else model.inverse(z, 10)
                 err = (inputs - x_re).abs().sum()
-                line_plot(viz, "recons err", epoch, err.item())
+                if viz is not None:
+                    line_plot(viz, "recons err", epoch, err.item())
                 bs = inputs.size(0)
                 samples = model.module.sample(bs, 10) if use_cuda else model.sample(bs, 10)
                 im_dir = os.path.join(args.save_dir, 'ims')
@@ -225,9 +231,10 @@ def test(best_result, args, model, epoch, testloader, viz, use_cuda, test_log):
                 torchvision.utils.save_image(x_re.cpu(),
                                              os.path.join(im_dir, "recons_{}.jpg".format(epoch)),
                                              int(bs ** .5), normalize=True)
-                images_plot(viz, "data", out_im(inputs).cpu())
-                images_plot(viz, "recons", out_im(x_re).cpu())
-                images_plot(viz, "samples", out_im(samples).cpu())
+                if viz is not None:
+                    images_plot(viz, "data", out_im(inputs).cpu())
+                    images_plot(viz, "recons", out_im(x_re).cpu())
+                    images_plot(viz, "samples", out_im(samples).cpu())
                 del x_re, err, samples
 
             del z, logpz, trace, logpx, loss
@@ -242,7 +249,8 @@ def test(best_result, args, model, epoch, testloader, viz, use_cuda, test_log):
         del inputs, targets
 
     objective = float(objective) / float(total)
-    line_plot(viz, "test bits/dim" if args.densityEstimation else "test acc", epoch, objective)
+    if viz is not None:
+        line_plot(viz, "test bits/dim" if args.densityEstimation else "test acc", epoch, objective)
     print("\n| Validation Epoch #%d\t\t\tobjective =  %.4f" % (epoch, objective), flush=True)
     if objective > best_result:
         print('\n| Saving Best model...\t\t\tobjective = %.4f%%' % (objective), flush=True)
