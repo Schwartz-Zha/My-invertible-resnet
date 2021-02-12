@@ -148,8 +148,8 @@ class SpectralNormConv(object):
 
         module.register_forward_pre_hook(fn)
 
-        module._register_state_dict_hook(SpectralNormConvStateDictHook(fn))
-        module._register_load_state_dict_pre_hook(SpectralNormConvLoadStateDictPreHook(fn))
+        # module._register_state_dict_hook(SpectralNormConvStateDictHook(fn))
+        # module._register_load_state_dict_pre_hook(SpectralNormConvLoadStateDictPreHook(fn))
         return fn
 
 
