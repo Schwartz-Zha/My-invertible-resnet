@@ -8,7 +8,6 @@ import numpy as np
 import torch
 from scipy.linalg import logm
 from torch.autograd.gradcheck import zero_gradients
-import torch.nn as nn
 
 def exact_matrix_logarithm_trace(Fx, x):
     """

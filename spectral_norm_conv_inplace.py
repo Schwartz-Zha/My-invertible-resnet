@@ -6,8 +6,6 @@ Based on: Regularisation of Neural Networks by Enforcing Lipschitz Continuity
 """
 import torch
 from torch.nn.functional import normalize, conv_transpose2d, conv2d
-from torch.nn.parameter import Parameter
-from torch.nn import ConvTranspose2d
 
 
 class SpectralNormConv(object):

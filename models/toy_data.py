@@ -2,7 +2,6 @@ import numpy as np
 import sklearn
 import sklearn.datasets
 import torch
-import pdb
 
 # Dataset iterator
 def inf_train_gen(data, rng=None, batch_size=200, dim=2):

@@ -1,11 +1,8 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 import numpy as np
-#from models.invertible_layers import *
 from models.utils import gaussian_diag, logmeanexp, indexes_to_one_hot, softmax
-from copy import copy
-import pdb
+
 
 class Layer(nn.Module):
     def __init__(self):
