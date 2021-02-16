@@ -152,44 +152,44 @@ class SpectralNormConv(object):
 
 
 
-class SpectralNormConvLoadStateDictPreHook(object):
-    # See docstring of SpectralNorm._version on the changes to spectral_norm.
-    def __init__(self, fn):
-        self.fn = fn
-
-    # For state_dict with version None, (assuming that it has gone through at
-    # least one training forward), we have
-    #
-    #    u = normalize(W_orig @ v)
-    #    W = W_orig / sigma, where sigma = u @ W_orig @ v
-    #
-    # To compute `v`, we solve `W_orig @ x = u`, and let
-    #    v = x / (u @ W_orig @ x) * (W / W_orig).
-    def __call__(self, state_dict, prefix, local_metadata, strict,
-                 missing_keys, unexpected_keys, error_msgs):
-        fn = self.fn
-        version = local_metadata.get('spectral_norm_conv', {}).get(fn.name + '.version', None)
-        if version is None or version < 1:
-            with torch.no_grad():
-                weight_orig = state_dict[prefix + fn.name + '_orig']
-                weight = state_dict.pop(prefix + fn.name)
-                sigma = (weight_orig / weight).mean()
-                weight_mat = fn.reshape_weight_to_matrix(weight_orig)
-                u = state_dict[prefix + fn.name + '_u']
-
-
-class SpectralNormConvStateDictHook(object):
-    # See docstring of SpectralNorm._version on the changes to spectral_norm.
-    def __init__(self, fn):
-        self.fn = fn
-
-    def __call__(self, module, state_dict, prefix, local_metadata):
-        if 'spectral_norm_conv' not in local_metadata:
-            local_metadata['spectral_norm_conv'] = {}
-        key = self.fn.name + '.version'
-        if key in local_metadata['spectral_norm_conv']:
-            raise RuntimeError("Unexpected key in metadata['spectral_norm_conv']: {}".format(key))
-        local_metadata['spectral_norm_conv'][key] = self.fn._version
+# class SpectralNormConvLoadStateDictPreHook(object):
+#     # See docstring of SpectralNorm._version on the changes to spectral_norm.
+#     def __init__(self, fn):
+#         self.fn = fn
+#
+#     # For state_dict with version None, (assuming that it has gone through at
+#     # least one training forward), we have
+#     #
+#     #    u = normalize(W_orig @ v)
+#     #    W = W_orig / sigma, where sigma = u @ W_orig @ v
+#     #
+#     # To compute `v`, we solve `W_orig @ x = u`, and let
+#     #    v = x / (u @ W_orig @ x) * (W / W_orig).
+#     def __call__(self, state_dict, prefix, local_metadata, strict,
+#                  missing_keys, unexpected_keys, error_msgs):
+#         fn = self.fn
+#         version = local_metadata.get('spectral_norm_conv', {}).get(fn.name + '.version', None)
+#         if version is None or version < 1:
+#             with torch.no_grad():
+#                 weight_orig = state_dict[prefix + fn.name + '_orig']
+#                 weight = state_dict.pop(prefix + fn.name)
+#                 sigma = (weight_orig / weight).mean()
+#                 weight_mat = fn.reshape_weight_to_matrix(weight_orig)
+#                 u = state_dict[prefix + fn.name + '_u']
+#
+#
+# class SpectralNormConvStateDictHook(object):
+#     # See docstring of SpectralNorm._version on the changes to spectral_norm.
+#     def __init__(self, fn):
+#         self.fn = fn
+#
+#     def __call__(self, module, state_dict, prefix, local_metadata):
+#         if 'spectral_norm_conv' not in local_metadata:
+#             local_metadata['spectral_norm_conv'] = {}
+#         key = self.fn.name + '.version'
+#         if key in local_metadata['spectral_norm_conv']:
+#             raise RuntimeError("Unexpected key in metadata['spectral_norm_conv']: {}".format(key))
+#         local_metadata['spectral_norm_conv'][key] = self.fn._version
 
 
 def spectral_norm_conv(module, coeff, input_dim, name='weight', n_power_iterations=1, eps=1e-12):
