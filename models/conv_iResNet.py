@@ -16,37 +16,36 @@ from spectral_norm_conv_inplace import spectral_norm_conv
 from spectral_norm_fc import spectral_norm_fc
 from matrix_utils import power_series_matrix_logarithm_trace
 
-from torch.distributions import constraints
 
 
-class LogisticTransform(torch.distributions.Transform):
-    r"""
-    Transform via the mapping :math:`y = \frac{1}{1 + \exp(-x)}` and :math:`x = \text{logit}(y)`.
-    """
-    codomain = constraints.real
-    domain = constraints.unit_interval
-    bijective = True
-    sign = +1
+# class LogisticTransform(torch.distributions.Transform):
+#     r"""
+#     Transform via the mapping :math:`y = \frac{1}{1 + \exp(-x)}` and :math:`x = \text{logit}(y)`.
+#     """
+#     codomain = constraints.real
+#     domain = constraints.unit_interval
+#     bijective = True
+#     sign = +1
+#
+#     def __eq__(self, other):
+#         return isinstance(other, LogisticTransform)
+#
+#     def _call(self, x):
+#         return x.log() - (-x).log1p()
+#
+#     def _inverse(self, y):
+#         return torch.sigmoid(y)
+#
+#     def log_abs_det_jacobian(self, x, y):
+#         return F.softplus(y) + F.softplus(-y)
 
-    def __eq__(self, other):
-        return isinstance(other, LogisticTransform)
 
-    def _call(self, x):
-        return x.log() - (-x).log1p()
-
-    def _inverse(self, y):
-        return torch.sigmoid(y)
-
-    def log_abs_det_jacobian(self, x, y):
-        return F.softplus(y) + F.softplus(-y)
-
-
-def logistic_distribution(loc, log_scale):
-    scale = torch.exp(log_scale) + 1e-5
-    base_distribution = distributions.Uniform(torch.zeros_like(loc), torch.ones_like(loc))
-    transforms = [LogisticTransform(), distributions.AffineTransform(loc=loc, scale=scale)]
-    logistic = distributions.TransformedDistribution(base_distribution, transforms)
-    return logistic
+# def logistic_distribution(loc, log_scale):
+#     scale = torch.exp(log_scale) + 1e-5
+#     base_distribution = distributions.Uniform(torch.zeros_like(loc), torch.ones_like(loc))
+#     transforms = [LogisticTransform(), distributions.AffineTransform(loc=loc, scale=scale)]
+#     logistic = distributions.TransformedDistribution(base_distribution, transforms)
+#     return logistic
 
 
 def downsample_shape(shape):
@@ -414,242 +413,242 @@ class multiscale_conv_iResNet(nn.Module):
                 layer.numSeriesTerms = n_terms
 
 
+#
+# class conv_iResNet(nn.Module):
+#     def __init__(self, in_shape, nBlocks, nStrides, nChannels, init_ds=2, inj_pad=0,
+#                  coeff=.9, density_estimation=False, nClasses=None,
+#                  numTraceSamples=1, numSeriesTerms=1,
+#                  n_power_iter=5,
+#                  block=conv_iresnet_block,
+#                  actnorm=True, learn_prior=True,
+#                  nonlin="relu"):
+#         super(conv_iResNet, self).__init__()
+#         assert len(nBlocks) == len(nStrides) == len(nChannels)
+#         assert init_ds in (1, 2), "can only squeeze by 2"
+#         self.init_ds = init_ds
+#         self.ipad = inj_pad
+#         self.nBlocks = nBlocks
+#         self.density_estimation = density_estimation
+#         self.nClasses = nClasses
+#         # parameters for trace estimation
+#         self.numTraceSamples = numTraceSamples if density_estimation else 0
+#         self.numSeriesTerms = numSeriesTerms if density_estimation else 0
+#         self.n_power_iter = n_power_iter
+#
+#         print('')
+#         print(' == Building iResNet %d == ' % (sum(nBlocks) * 3 + 1))
+#         self.init_squeeze = Squeeze(self.init_ds)
+#         self.inj_pad = injective_pad(inj_pad)
+#         if self.init_ds == 2:
+#            in_shape = downsample_shape(in_shape)
+#         in_shape = (in_shape[0] + inj_pad, in_shape[1], in_shape[2])  # adjust channels
+#
+#         self.stack, self.in_shapes, self.final_shape = self._make_stack(nChannels, nBlocks, nStrides,
+#                                                                         in_shape, coeff, block,
+#                                                                         actnorm, n_power_iter, nonlin)
+#
+#         # make prior distribution
+#         self._make_prior(learn_prior)
+#         # make classifier
+#         self._make_classifier(self.final_shape, nClasses)
+#         assert (nClasses is not None or density_estimation), "Must be either classifier or density estimator"
+#
+#     def _make_prior(self, learn_prior):
+#         dim = torch.prod(torch.tensor(self.in_shapes[0]))
+#         self.prior_mu = nn.Parameter(torch.zeros((dim,)).float(), requires_grad=learn_prior)
+#         self.prior_logstd = nn.Parameter(torch.zeros((dim,)).float(), requires_grad=learn_prior)
+#
+#     def _make_classifier(self, final_shape, nClasses):
+#         if nClasses is None:
+#             self.logits = None
+#         else:
+#             self.bn1 = nn.BatchNorm2d(final_shape[0], momentum=0.9)
+#             self.logits = nn.Linear(final_shape[0], nClasses)
+#
+#     def classifier(self, z):
+#         out = F.relu(self.bn1(z))
+#         out = F.avg_pool2d(out, out.size(2))
+#         out = out.view(out.size(0), out.size(1))
+#         return self.logits(out)
+#
+#     def prior(self):
+#         return distributions.Normal(self.prior_mu, torch.exp(self.prior_logstd))
+#
+#     def logpz(self, z):
+#         return self.prior().log_prob(z.view(z.size(0), -1)).sum(dim=1)
+#
+#     def _make_stack(self, nChannels, nBlocks, nStrides, in_shape, coeff, block,
+#                     actnorm, n_power_iter, nonlin):
+#         """ Create stack of iresnet blocks """
+#         block_list = nn.ModuleList()
+#         in_shapes = []
+#         for i, (int_dim, stride, blocks) in enumerate(zip(nChannels, nStrides, nBlocks)):
+#             for j in range(blocks):
+#                 in_shapes.append(in_shape)
+#                 block_list.append(block(in_shape, int_dim,
+#                                         numTraceSamples=self.numTraceSamples,
+#                                         numSeriesTerms=self.numSeriesTerms,
+#                                         stride=(stride if j == 0 else 1),  # use stride if first layer in block else 1
+#                                         input_nonlin=(i + j > 0),  # add nonlinearity to input for all but fist layer
+#                                         coeff=coeff,
+#                                         actnorm=actnorm,
+#                                         n_power_iter=n_power_iter,
+#                                         nonlin=nonlin))
+#                 if stride == 2 and j == 0:
+#                     in_shape = downsample_shape(in_shape)
+#
+#         return block_list, in_shapes, in_shape
+#
+#     def get_in_shapes(self):
+#         return self.in_shapes
+#
+#     # def inspect_singular_values(self):
+#     #     i = 0
+#     #     j = 0
+#     #     params = [v for v in self.state_dict().keys()
+#     #               if "bottleneck" in v and "weight_orig" in v
+#     #               and not "weight_u" in v
+#     #               and not "bn1" in v
+#     #               and not "linear" in v]
+#     #     print(len(params))
+#     #     print(len(self.in_shapes))
+#     #     svs = []
+#         # for param in params:
+#         #   input_shape = tuple(self.in_shapes[j])
+#         #   # get unscaled parameters from state dict
+#         #   convKernel_unscaled = self.state_dict()[param].cpu().numpy()
+#         #   # get scaling by spectral norm
+#         #   sigma = self.state_dict()[param[:-5] + '_sigma'].cpu().numpy()
+#         #   convKernel = convKernel_unscaled / sigma
+#         #   # compute singular values
+#         #   input_shape = input_shape[1:]
+#         #   fft_coeff = np.fft.fft2(convKernel, input_shape, axes=[2, 3])
+#         #   t_fft_coeff = np.transpose(fft_coeff)
+#         #   D = np.linalg.svd(t_fft_coeff, compute_uv=False, full_matrices=False)
+#         #   Dflat = np.sort(D.flatten())[::-1]
+#         #   print("Layer "+str(j)+" Singular Value "+str(Dflat[0]))
+#         #   svs.append(Dflat[0])
+#         #   if i == 2:
+#         #     i = 0
+#         #     j+= 1
+#         #   else:
+#         #     i+=1
+#         # return svs
+#
+#     def forward(self, x, ignore_logdet=False):
+#         """ iresnet forward """
+#         if self.init_ds == 2:
+#             x = self.init_squeeze.forward(x)
+#
+#         if self.ipad != 0:
+#             x = self.inj_pad.forward(x)
+#
+#         z = x
+#         traces = []
+#         for block in self.stack:
+#             z, trace = block(z, ignore_logdet=ignore_logdet)
+#             traces.append(trace)
+#
+#         # no classification head
+#         if self.density_estimation:
+#             # add logdets
+#             tmp_trace = torch.zeros_like(traces[0])
+#             for k in range(len(traces)):
+#                 tmp_trace += traces[k]
+#
+#             logpz = self.logpz(z)
+#             return z, logpz, tmp_trace
+#
+#         # classification head
+#         else:
+#             logits = self.classifier(z)
+#             return logits, z
+#
+#     def inverse(self, z, max_iter=10):
+#         """ iresnet inverse """
+#         with torch.no_grad():
+#             x = z
+#             for i in range(len(self.stack)):
+#                 x = self.stack[-1 - i].inverse(x, maxIter=max_iter)
+#
+#             if self.ipad != 0:
+#                 x = self.inj_pad.inverse(x)
+#
+#             if self.init_ds == 2:
+#                 x = self.init_squeeze.inverse(x)
+#         return x
+#
+#     def sample(self, batch_size, max_iter=10):
+#         """sample from prior and invert"""
+#         with torch.no_grad():
+#             # only send batch_size to prior, prior has final_shape as attribute
+#             samples = self.prior().rsample((batch_size,))
+#             samples = samples.view((batch_size,) + self.final_shape)
+#             return self.inverse(samples, max_iter=max_iter)
+#
+#     def set_num_terms(self, n_terms):
+#         for block in self.stack:
+#             for layer in block.stack:
+#                 layer.numSeriesTerms = n_terms
 
-class conv_iResNet(nn.Module):
-    def __init__(self, in_shape, nBlocks, nStrides, nChannels, init_ds=2, inj_pad=0,
-                 coeff=.9, density_estimation=False, nClasses=None,
-                 numTraceSamples=1, numSeriesTerms=1,
-                 n_power_iter=5,
-                 block=conv_iresnet_block,
-                 actnorm=True, learn_prior=True,
-                 nonlin="relu"):
-        super(conv_iResNet, self).__init__()
-        assert len(nBlocks) == len(nStrides) == len(nChannels)
-        assert init_ds in (1, 2), "can only squeeze by 2"
-        self.init_ds = init_ds
-        self.ipad = inj_pad
-        self.nBlocks = nBlocks
-        self.density_estimation = density_estimation
-        self.nClasses = nClasses
-        # parameters for trace estimation
-        self.numTraceSamples = numTraceSamples if density_estimation else 0
-        self.numSeriesTerms = numSeriesTerms if density_estimation else 0
-        self.n_power_iter = n_power_iter
 
-        print('')
-        print(' == Building iResNet %d == ' % (sum(nBlocks) * 3 + 1))
-        self.init_squeeze = Squeeze(self.init_ds)
-        self.inj_pad = injective_pad(inj_pad)
-        if self.init_ds == 2:
-           in_shape = downsample_shape(in_shape)
-        in_shape = (in_shape[0] + inj_pad, in_shape[1], in_shape[2])  # adjust channels
-
-        self.stack, self.in_shapes, self.final_shape = self._make_stack(nChannels, nBlocks, nStrides,
-                                                                        in_shape, coeff, block,
-                                                                        actnorm, n_power_iter, nonlin)
-
-        # make prior distribution
-        self._make_prior(learn_prior)
-        # make classifier
-        self._make_classifier(self.final_shape, nClasses)
-        assert (nClasses is not None or density_estimation), "Must be either classifier or density estimator"
-
-    def _make_prior(self, learn_prior):
-        dim = torch.prod(torch.tensor(self.in_shapes[0]))
-        self.prior_mu = nn.Parameter(torch.zeros((dim,)).float(), requires_grad=learn_prior)
-        self.prior_logstd = nn.Parameter(torch.zeros((dim,)).float(), requires_grad=learn_prior)
-
-    def _make_classifier(self, final_shape, nClasses):
-        if nClasses is None:
-            self.logits = None
-        else:
-            self.bn1 = nn.BatchNorm2d(final_shape[0], momentum=0.9)
-            self.logits = nn.Linear(final_shape[0], nClasses)
-
-    def classifier(self, z):
-        out = F.relu(self.bn1(z))
-        out = F.avg_pool2d(out, out.size(2))
-        out = out.view(out.size(0), out.size(1))
-        return self.logits(out)
-
-    def prior(self):
-        return distributions.Normal(self.prior_mu, torch.exp(self.prior_logstd))
-
-    def logpz(self, z):
-        return self.prior().log_prob(z.view(z.size(0), -1)).sum(dim=1)
-
-    def _make_stack(self, nChannels, nBlocks, nStrides, in_shape, coeff, block,
-                    actnorm, n_power_iter, nonlin):
-        """ Create stack of iresnet blocks """
-        block_list = nn.ModuleList()
-        in_shapes = []
-        for i, (int_dim, stride, blocks) in enumerate(zip(nChannels, nStrides, nBlocks)):
-            for j in range(blocks):
-                in_shapes.append(in_shape)
-                block_list.append(block(in_shape, int_dim,
-                                        numTraceSamples=self.numTraceSamples,
-                                        numSeriesTerms=self.numSeriesTerms,
-                                        stride=(stride if j == 0 else 1),  # use stride if first layer in block else 1
-                                        input_nonlin=(i + j > 0),  # add nonlinearity to input for all but fist layer
-                                        coeff=coeff,
-                                        actnorm=actnorm,
-                                        n_power_iter=n_power_iter,
-                                        nonlin=nonlin))
-                if stride == 2 and j == 0:
-                    in_shape = downsample_shape(in_shape)
-
-        return block_list, in_shapes, in_shape
-
-    def get_in_shapes(self):
-        return self.in_shapes
-    
-    def inspect_singular_values(self):
-        i = 0
-        j = 0
-        params = [v for v in self.state_dict().keys()
-                  if "bottleneck" in v and "weight_orig" in v
-                  and not "weight_u" in v
-                  and not "bn1" in v
-                  and not "linear" in v]
-        print(len(params))
-        print(len(self.in_shapes))
-        svs = [] 
-        # for param in params:
-        #   input_shape = tuple(self.in_shapes[j])
-        #   # get unscaled parameters from state dict
-        #   convKernel_unscaled = self.state_dict()[param].cpu().numpy()
-        #   # get scaling by spectral norm
-        #   sigma = self.state_dict()[param[:-5] + '_sigma'].cpu().numpy()
-        #   convKernel = convKernel_unscaled / sigma
-        #   # compute singular values
-        #   input_shape = input_shape[1:]
-        #   fft_coeff = np.fft.fft2(convKernel, input_shape, axes=[2, 3])
-        #   t_fft_coeff = np.transpose(fft_coeff)
-        #   D = np.linalg.svd(t_fft_coeff, compute_uv=False, full_matrices=False)
-        #   Dflat = np.sort(D.flatten())[::-1]
-        #   print("Layer "+str(j)+" Singular Value "+str(Dflat[0]))
-        #   svs.append(Dflat[0])
-        #   if i == 2:
-        #     i = 0
-        #     j+= 1
-        #   else:
-        #     i+=1
-        # return svs
-
-    def forward(self, x, ignore_logdet=False):
-        """ iresnet forward """
-        if self.init_ds == 2:
-            x = self.init_squeeze.forward(x)
-
-        if self.ipad != 0:
-            x = self.inj_pad.forward(x)
-
-        z = x
-        traces = []
-        for block in self.stack:
-            z, trace = block(z, ignore_logdet=ignore_logdet)
-            traces.append(trace)
-
-        # no classification head
-        if self.density_estimation:
-            # add logdets
-            tmp_trace = torch.zeros_like(traces[0])
-            for k in range(len(traces)):
-                tmp_trace += traces[k]
-
-            logpz = self.logpz(z)
-            return z, logpz, tmp_trace
-
-        # classification head
-        else:
-            logits = self.classifier(z)
-            return logits, z
-
-    def inverse(self, z, max_iter=10):
-        """ iresnet inverse """
-        with torch.no_grad():
-            x = z
-            for i in range(len(self.stack)):
-                x = self.stack[-1 - i].inverse(x, maxIter=max_iter)
-
-            if self.ipad != 0:
-                x = self.inj_pad.inverse(x)
-
-            if self.init_ds == 2:
-                x = self.init_squeeze.inverse(x)
-        return x
-
-    def sample(self, batch_size, max_iter=10):
-        """sample from prior and invert"""
-        with torch.no_grad():
-            # only send batch_size to prior, prior has final_shape as attribute
-            samples = self.prior().rsample((batch_size,))
-            samples = samples.view((batch_size,) + self.final_shape)
-            return self.inverse(samples, max_iter=max_iter)
-
-    def set_num_terms(self, n_terms):
-        for block in self.stack:
-            for layer in block.stack:
-                layer.numSeriesTerms = n_terms
-
-
-if __name__ == "__main__":
-    scale = 1.
-    loc = 0.
-    base_distribution = distributions.Uniform(0., 1.)
-    transforms_1 = [distributions.SigmoidTransform().inv, distributions.AffineTransform(loc=loc, scale=scale)]
-    logistic_1 = distributions.TransformedDistribution(base_distribution, transforms_1)
-
-    transforms_2 = [LogisticTransform(), distributions.AffineTransform(loc=loc, scale=scale)]
-    logistic_2 = distributions.TransformedDistribution(base_distribution, transforms_2)
-
-    x = torch.zeros(2)
-    print(logistic_1.log_prob(x), logistic_2.log_prob(x))
-    1/0
-
-    diff = lambda x, y: (x - y).abs().sum()
-    batch_size = 13
-    channels = 3
-    h, w = 32, 32
-    in_shape = (batch_size, channels, h, w)
-    x = torch.randn((batch_size, channels, h, w), requires_grad=True)
-
-    block = conv_iresnet_block(in_shape[1:], 32, stride=1, actnorm=True)
-    out, tr = block(x)#, ignore_logdet=True)
-    print("block")
-    for i in range(10):
-        x_re = block.inverse(out, i)
-        print(i, diff(x, x_re))
-
-    steps = 4
-    int_dim = 32
-    sb = scale_block(steps, in_shape[1:], int_dim, True, 5, 1, True, .9, False, True, True)
-
-    [z1, z2], tr = sb(x)#, ignore_logdet=True)
-    print("scale block")
-    for i in range(1):
-        x_re = sb.inverse(z1, z2, i)
-        print(i, diff(x, x_re))
-
-    resnet = conv_iResNet(in_shape[1:], [4, 4, 4], [1, 2, 2], [32, 32, 32],
-                          init_ds=2, density_estimation=True, actnorm=True)
-    print(resnet.final_shape)
-    z, lpz, tr = resnet(x)#, ignore_logdet=True)
-    for i in range(1):
-        x_re = resnet.inverse(z, i)
-        print("{} iters error {}".format(i, (x - x_re).abs().sum()))
-
-    resnet = multiscale_conv_iResNet(in_shape[1:], [4, 4, 4], [1, 2, 2], [32, 32, 32],
-                                     True, 0, .9, True, None, True, 1, 5, True)
-    out, logpz, tr = resnet(x)#, ignore_logdet=True)
-    print(logpz)
-    print(tr)
-    print([o.size() for o in out])
-    print(resnet.z_shapes())
-    sample = resnet.sample(33)
-    print(sample.size())
-    print('multiscale')
-    for i in range(20):
-        x_re = resnet.inverse(out, i)
-        print(i, diff(x, x_re))
-
+# if __name__ == "__main__":
+#     scale = 1.
+#     loc = 0.
+#     base_distribution = distributions.Uniform(0., 1.)
+#     transforms_1 = [distributions.SigmoidTransform().inv, distributions.AffineTransform(loc=loc, scale=scale)]
+#     logistic_1 = distributions.TransformedDistribution(base_distribution, transforms_1)
+#
+#     transforms_2 = [LogisticTransform(), distributions.AffineTransform(loc=loc, scale=scale)]
+#     logistic_2 = distributions.TransformedDistribution(base_distribution, transforms_2)
+#
+#     x = torch.zeros(2)
+#     print(logistic_1.log_prob(x), logistic_2.log_prob(x))
+#     1/0
+#
+#     diff = lambda x, y: (x - y).abs().sum()
+#     batch_size = 13
+#     channels = 3
+#     h, w = 32, 32
+#     in_shape = (batch_size, channels, h, w)
+#     x = torch.randn((batch_size, channels, h, w), requires_grad=True)
+#
+#     block = conv_iresnet_block(in_shape[1:], 32, stride=1, actnorm=True)
+#     out, tr = block(x)#, ignore_logdet=True)
+#     print("block")
+#     for i in range(10):
+#         x_re = block.inverse(out, i)
+#         print(i, diff(x, x_re))
+#
+#     steps = 4
+#     int_dim = 32
+#     sb = scale_block(steps, in_shape[1:], int_dim, True, 5, 1, True, .9, False, True, True)
+#
+#     [z1, z2], tr = sb(x)#, ignore_logdet=True)
+#     print("scale block")
+#     for i in range(1):
+#         x_re = sb.inverse(z1, z2, i)
+#         print(i, diff(x, x_re))
+#
+#     resnet = conv_iResNet(in_shape[1:], [4, 4, 4], [1, 2, 2], [32, 32, 32],
+#                           init_ds=2, density_estimation=True, actnorm=True)
+#     print(resnet.final_shape)
+#     z, lpz, tr = resnet(x)#, ignore_logdet=True)
+#     for i in range(1):
+#         x_re = resnet.inverse(z, i)
+#         print("{} iters error {}".format(i, (x - x_re).abs().sum()))
+#
+#     resnet = multiscale_conv_iResNet(in_shape[1:], [4, 4, 4], [1, 2, 2], [32, 32, 32],
+#                                      True, 0, .9, True, None, True, 1, 5, True)
+#     out, logpz, tr = resnet(x)#, ignore_logdet=True)
+#     print(logpz)
+#     print(tr)
+#     print([o.size() for o in out])
+#     print(resnet.z_shapes())
+#     sample = resnet.sample(33)
+#     print(sample.size())
+#     print('multiscale')
+#     for i in range(20):
+#         x_re = resnet.inverse(out, i)
+#         print(i, diff(x, x_re))
+#

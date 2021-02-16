@@ -17,7 +17,7 @@ import argparse
 import random
 import json
 from models.utils_cifar import train, test, std, mean, get_hms, interpolate
-from models.conv_iResNet import conv_iResNet as iResNet
+# from models.conv_iResNet import conv_iResNet as iResNet
 from models.conv_iResNet import multiscale_conv_iResNet as multiscale_iResNet
 
 parser = argparse.ArgumentParser(description='Train i-ResNet/ResNet on Cifar')
@@ -158,13 +158,57 @@ def main():
         random.seed(1234)
         torch.backends.cudnn.deterministic=True
 
+
+    if args.densityEstimation:
+        pass
+    else:
+        print('Only density estimation supported')
+        exit()
+
     dens_est_chain = [
         lambda x: (255. * x) + torch.zeros_like(x).uniform_(0., 1.),
         lambda x: x / 256.,
         lambda x: x - 0.5
     ]
-    if args.dataset == 'mnist':
-        assert args.densityEstimation, "Currently mnist is only supported for density estimation"
+    test_chain = [transforms.ToTensor()]
+
+    if args.dataset == 'cifar10':
+        train_chain = [transforms.Pad(4, padding_mode="symmetric"),
+                       transforms.RandomCrop(32),
+                       transforms.RandomHorizontalFlip(),
+                       transforms.ToTensor()]
+        transform_train = transforms.Compose(train_chain + dens_est_chain)
+        transform_test = transforms.Compose(test_chain + dens_est_chain)
+        trainset = torchvision.datasets.CIFAR10(
+            root='./data', train=True, download=True, transform=transform_train)
+        testset = torchvision.datasets.CIFAR10(
+            root='./data', train=False, download=True, transform=transform_test)
+        args.nClasses = 10
+    elif args.dataset == 'cifar100':
+        train_chain = [transforms.Pad(4, padding_mode="symmetric"),
+                       transforms.RandomCrop(32),
+                       transforms.RandomHorizontalFlip(),
+                       transforms.ToTensor()]
+        transform_train = transforms.Compose(train_chain + dens_est_chain)
+        transform_test = transforms.Compose(test_chain + dens_est_chain)
+        trainset = torchvision.datasets.CIFAR100(
+            root='./data', train=True, download=True, transform=transform_train)
+        testset = torchvision.datasets.CIFAR100(
+            root='./data', train=False, download=True, transform=transform_test)
+        args.nClasses = 100
+    elif args.dataset == 'svhn':
+        train_chain = [transforms.Pad(4, padding_mode="symmetric"),
+                       transforms.RandomCrop(32),
+                       transforms.ToTensor()]
+        transform_train = transforms.Compose(train_chain + dens_est_chain)
+        transform_test = transforms.Compose(test_chain + dens_est_chain)
+        trainset = torchvision.datasets.SVHN(
+            root='./data', split='train', download=True, transform=transform_train)
+        testset = torchvision.datasets.SVHN(
+            root='./data', split='test', download=True, transform=transform_test)
+        args.nClasses = 10
+    else:
+        # mnist
         mnist_transforms = [transforms.Pad(2, 0), transforms.ToTensor(), lambda x: x.repeat((3, 1, 1))]
         transform_train_mnist = transforms.Compose(mnist_transforms + dens_est_chain)
         transform_test_mnist = transforms.Compose(mnist_transforms + dens_est_chain)
@@ -173,47 +217,7 @@ def main():
         testset = torchvision.datasets.MNIST(
             root='./data', train=False, download=False, transform=transform_test_mnist)
         args.nClasses = 10
-        in_shape = (3, 32, 32)
-    else:
-        if args.dataset == 'svhn':
-            train_chain = [transforms.Pad(4, padding_mode="symmetric"),
-                           transforms.RandomCrop(32),
-                           transforms.ToTensor()]
-        else:
-            train_chain = [transforms.Pad(4, padding_mode="symmetric"),
-                           transforms.RandomCrop(32),
-                           transforms.RandomHorizontalFlip(),
-                           transforms.ToTensor()]
-
-        test_chain = [transforms.ToTensor()]
-        if args.densityEstimation:
-            transform_train = transforms.Compose(train_chain + dens_est_chain)
-            transform_test = transforms.Compose(test_chain + dens_est_chain)
-        else:
-            clf_chain = [transforms.Normalize(mean[args.dataset], std[args.dataset])]
-            transform_train = transforms.Compose(train_chain + clf_chain)
-            transform_test = transforms.Compose(test_chain + clf_chain)
-
-
-        if args.dataset == 'cifar10':
-            trainset = torchvision.datasets.CIFAR10(
-                root='./data', train=True, download=True, transform=transform_train)
-            testset = torchvision.datasets.CIFAR10(
-                root='./data', train=False, download=True, transform=transform_test)
-            args.nClasses = 10
-        elif args.dataset == 'cifar100':
-            trainset = torchvision.datasets.CIFAR100(
-                root='./data', train=True, download=True, transform=transform_train)
-            testset = torchvision.datasets.CIFAR100(
-                root='./data', train=False, download=True, transform=transform_test)
-            args.nClasses = 100
-        elif args.dataset == 'svhn':
-            trainset = torchvision.datasets.SVHN(
-                root='./data', split='train', download=True, transform=transform_train)
-            testset = torchvision.datasets.SVHN(
-                root='./data', split='test', download=True, transform=transform_test)
-            args.nClasses = 10
-        in_shape = (3, 32, 32)
+    in_shape = (3, 32, 32)
 
 
     # setup logging with visdom
@@ -244,19 +248,21 @@ def main():
                                        learn_prior=(not args.fixedPrior),
                                        nonlin=args.nonlin)
         else:
-            model = iResNet(nBlocks=args.nBlocks, nStrides=args.nStrides,
-                            nChannels=args.nChannels, nClasses=args.nClasses,
-                            init_ds=args.init_ds,
-                            inj_pad=args.inj_pad,
-                            in_shape=in_shape,
-                            coeff=args.coeff,
-                            numTraceSamples=args.numTraceSamples,
-                            numSeriesTerms=args.numSeriesTerms,
-                            n_power_iter = args.powerIterSpectralNorm,
-                            density_estimation=args.densityEstimation,
-                            actnorm=(not args.noActnorm),
-                            learn_prior=(not args.fixedPrior),
-                            nonlin=args.nonlin)
+            # model = iResNet(nBlocks=args.nBlocks, nStrides=args.nStrides,
+            #                 nChannels=args.nChannels, nClasses=args.nClasses,
+            #                 init_ds=args.init_ds,
+            #                 inj_pad=args.inj_pad,
+            #                 in_shape=in_shape,
+            #                 coeff=args.coeff,
+            #                 numTraceSamples=args.numTraceSamples,
+            #                 numSeriesTerms=args.numSeriesTerms,
+            #                 n_power_iter = args.powerIterSpectralNorm,
+            #                 density_estimation=args.densityEstimation,
+            #                 actnorm=(not args.noActnorm),
+            #                 learn_prior=(not args.fixedPrior),
+            #                 nonlin=args.nonlin)
+            print("Only multiscale model supported.")
+            exit()
         return model
 
     model = get_model(args)
