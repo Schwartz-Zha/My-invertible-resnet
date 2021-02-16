@@ -301,7 +301,7 @@ class multiscale_conv_iResNet(nn.Module):
         return blocks, in_shapes
 
     def _make_prior(self, learn_prior):
-        dim = np.prod(self.in_shapes[0])
+        dim = torch.prod(torch.tensor(self.in_shapes[0]))
         self.prior_mu = nn.Parameter(torch.zeros((dim,)).float(), requires_grad=learn_prior)
         self.prior_logstd = nn.Parameter(torch.zeros((dim,)).float(), requires_grad=learn_prior)
 
@@ -392,7 +392,7 @@ class multiscale_conv_iResNet(nn.Module):
         zs = []
         cur_dim = 0
         for z_shape in self.z_shapes():
-            z_dim = np.prod(z_shape)
+            z_dim = torch.prod(torch.tensor(z_shape))
             this_z = z[:, cur_dim: cur_dim + z_dim]
             this_z = this_z.view(z.size(0), *z_shape)
             zs.append(this_z)
@@ -455,7 +455,7 @@ class conv_iResNet(nn.Module):
         assert (nClasses is not None or density_estimation), "Must be either classifier or density estimator"
 
     def _make_prior(self, learn_prior):
-        dim = np.prod(self.in_shapes[0])
+        dim = torch.prod(torch.tensor(self.in_shapes[0]))
         self.prior_mu = nn.Parameter(torch.zeros((dim,)).float(), requires_grad=learn_prior)
         self.prior_logstd = nn.Parameter(torch.zeros((dim,)).float(), requires_grad=learn_prior)
 
@@ -514,27 +514,27 @@ class conv_iResNet(nn.Module):
         print(len(params))
         print(len(self.in_shapes))
         svs = [] 
-        for param in params:
-          input_shape = tuple(self.in_shapes[j])
-          # get unscaled parameters from state dict
-          convKernel_unscaled = self.state_dict()[param].cpu().numpy()
-          # get scaling by spectral norm
-          sigma = self.state_dict()[param[:-5] + '_sigma'].cpu().numpy()
-          convKernel = convKernel_unscaled / sigma
-          # compute singular values
-          input_shape = input_shape[1:]
-          fft_coeff = np.fft.fft2(convKernel, input_shape, axes=[2, 3])
-          t_fft_coeff = np.transpose(fft_coeff)
-          D = np.linalg.svd(t_fft_coeff, compute_uv=False, full_matrices=False)
-          Dflat = np.sort(D.flatten())[::-1] 
-          print("Layer "+str(j)+" Singular Value "+str(Dflat[0]))
-          svs.append(Dflat[0])
-          if i == 2:
-            i = 0
-            j+= 1
-          else:
-            i+=1
-        return svs
+        # for param in params:
+        #   input_shape = tuple(self.in_shapes[j])
+        #   # get unscaled parameters from state dict
+        #   convKernel_unscaled = self.state_dict()[param].cpu().numpy()
+        #   # get scaling by spectral norm
+        #   sigma = self.state_dict()[param[:-5] + '_sigma'].cpu().numpy()
+        #   convKernel = convKernel_unscaled / sigma
+        #   # compute singular values
+        #   input_shape = input_shape[1:]
+        #   fft_coeff = np.fft.fft2(convKernel, input_shape, axes=[2, 3])
+        #   t_fft_coeff = np.transpose(fft_coeff)
+        #   D = np.linalg.svd(t_fft_coeff, compute_uv=False, full_matrices=False)
+        #   Dflat = np.sort(D.flatten())[::-1]
+        #   print("Layer "+str(j)+" Singular Value "+str(Dflat[0]))
+        #   svs.append(Dflat[0])
+        #   if i == 2:
+        #     i = 0
+        #     j+= 1
+        #   else:
+        #     i+=1
+        # return svs
 
     def forward(self, x, ignore_logdet=False):
         """ iresnet forward """

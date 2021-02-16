@@ -11,12 +11,9 @@ from torch.autograd import Variable
 import numpy as np
 import torchvision
 import torchvision.transforms as transforms
-import visdom
 import os
-import sys
 import time
 import argparse
-import pdb
 import random
 import json
 from models.utils_cifar import train, test, std, mean, get_hms, interpolate

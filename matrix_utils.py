@@ -4,33 +4,32 @@ http://proceedings.mlr.press/v97/behrmann19a.html
 ICML, 2019
 """
 
-import numpy as np
-import torch
-from scipy.linalg import logm
-from torch.autograd.gradcheck import zero_gradients
 
-def exact_matrix_logarithm_trace(Fx, x):
-    """
-    Computes slow-ass Tr(Ln(d(Fx)/dx))
-    :param Fx: output of f(x)
-    :param x: input
-    :return: Tr(Ln(I + df/dx))
-    """
-    bs = Fx.size(0)
-    outVector = torch.sum(Fx, 0).view(-1)
-    outdim = outVector.size()[0]
-    indim = x.view(bs, -1).size()
-    jac = torch.empty([bs, outdim, indim[1]], dtype=torch.float)
-    # for each output Fx[i] compute d(Fx[i])/d(x)
-    for i in range(outdim):
-        zero_gradients(x)
-        jac[:, i, :] = torch.autograd.grad(outVector[i], x,
-                                           retain_graph=True)[0].view(bs, outdim)
-    jac = jac.cpu().numpy()
-    iden = np.eye(jac.shape[1])
-    log_jac = np.stack([logm(jac[i] + iden) for i in range(bs)])
-    trace_jac = np.diagonal(log_jac, axis1=1, axis2=2).sum(1)
-    return trace_jac
+import torch
+
+
+# def exact_matrix_logarithm_trace(Fx, x):
+#     """
+#     Computes slow-ass Tr(Ln(d(Fx)/dx))
+#     :param Fx: output of f(x)
+#     :param x: input
+#     :return: Tr(Ln(I + df/dx))
+#     """
+#     bs = Fx.size(0)
+#     outVector = torch.sum(Fx, 0).view(-1)
+#     outdim = outVector.size()[0]
+#     indim = x.view(bs, -1).size()
+#     jac = torch.empty([bs, outdim, indim[1]], dtype=torch.float)
+#     # for each output Fx[i] compute d(Fx[i])/d(x)
+#     for i in range(outdim):
+#         zero_gradients(x)
+#         jac[:, i, :] = torch.autograd.grad(outVector[i], x,
+#                                            retain_graph=True)[0].view(bs, outdim)
+#     jac = jac.cpu().numpy()
+#     iden = np.eye(jac.shape[1])
+#     log_jac = np.stack([logm(jac[i] + iden) for i in range(bs)])
+#     trace_jac = np.diagonal(log_jac, axis1=1, axis2=2).sum(1)
+#     return trace_jac
 
 
 def power_series_full_jac_exact_trace(Fx, x, k):
@@ -50,9 +49,9 @@ def power_series_full_jac_exact_trace(Fx, x, k):
         if i > 1:
             jacPower = torch.matmul(jacPower, jac)
         if (i + 1) % 2 == 0:
-            summand += jacPower / (np.float(i))
+            summand += jacPower / (torch.Tensor([i]).to(summand.device))
         else: 
-            summand -= jacPower / (np.float(i)) 
+            summand -= jacPower / (torch.Tensor([i]).to(summand.device))
     trace = torch.diagonal(summand, dim1=1, dim2=2).sum(1)
     return trace
 
@@ -87,9 +86,9 @@ def power_series_matrix_logarithm_trace(Fx, x, k, n):
         summand = torch.matmul(vjp4D, u4D)
         # add summand to power series
         if (j + 1) % 2 == 0:
-            trLn += summand / np.float(j)
+            trLn += summand / torch.Tensor([j]).to(summand.device)
         else:
-            trLn -= summand / np.float(j)
+            trLn -= summand / torch.Tensor([j]).to(summand.device)
     trace = trLn.mean(dim=1).squeeze()
     return trace
 
@@ -113,20 +112,20 @@ def log_det_other(x):
     return torch.logdet(x)
 
 
-def weak_bound(sigma, d, n_terms):
-    """
-    Returns a bound on |Tr(Ln(A)) - PowerSeries(A, n_terms)|
-    :param sigma: lipschitz constant of block
-    :param d: dimension of data
-    :param n_terms: number of terms in our estimate
-    :return:
-    """
-    inf_sum = -np.log(1. - sigma)
-    fin_sum = 0.
-    for k in range(1, n_terms + 1):
-        fin_sum += (sigma**k) / k
-
-    return d * (inf_sum - fin_sum)
+# def weak_bound(sigma, d, n_terms):
+#     """
+#     Returns a bound on |Tr(Ln(A)) - PowerSeries(A, n_terms)|
+#     :param sigma: lipschitz constant of block
+#     :param d: dimension of data
+#     :param n_terms: number of terms in our estimate
+#     :return:
+#     """
+#     inf_sum = -np.log(1. - sigma)
+#     fin_sum = 0.
+#     for k in range(1, n_terms + 1):
+#         fin_sum += (sigma**k) / k
+#
+#     return d * (inf_sum - fin_sum)
 
 
 if __name__ == "__main__":

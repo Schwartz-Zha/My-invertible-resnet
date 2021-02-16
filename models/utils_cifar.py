@@ -311,12 +311,12 @@ def _clipping_comp(param, key, coeff, input_shape, use_cuda):
     return
 
 
-def clip_conv_layer(model, coeff, use_cuda):
-    shape_list = _determine_shapes(model)
-    num_cores = multiprocessing.cpu_count()
-    for (key, param), shape in zip(model.named_parameters(), shape_list):
-        _clipping_comp(param, key, coeff, shape, use_cuda)
-    return
+# def clip_conv_layer(model, coeff, use_cuda):
+#     shape_list = _determine_shapes(model)
+#     num_cores = multiprocessing.cpu_count()
+#     for (key, param), shape in zip(model.named_parameters(), shape_list):
+#         _clipping_comp(param, key, coeff, shape, use_cuda)
+#     return
 
 def interpolate(model, testloader, testset, epoch, use_cuda, best_acc, dataset, fname):
     model.eval()
