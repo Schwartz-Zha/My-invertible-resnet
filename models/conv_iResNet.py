@@ -242,6 +242,8 @@ class multiscale_conv_iResNet(nn.Module):
         else:
             self.init_squeeze = None
 
+        self.input_shape = in_shape
+
         if init_squeeze:
             in_shape = downsample_shape(in_shape)
         in_shape = (in_shape[0], in_shape[1], in_shape[2])  # adjust channels
