@@ -77,12 +77,8 @@ def train(args, model, optimizer, epoch, trainloader, trainset, viz, use_cuda, t
     correct = 0
     total = 0
 
-    # update lr for this epoch (for classification only)
-    if not args.densityEstimation:
-        lr = learning_rate(args.lr, epoch)
-        update_lr(optimizer, lr)
-    else:
-        lr = args.lr
+
+    lr = args.lr
 
     params = sum([np.prod(p.size()) for p in model.parameters()])
     print('|  Number of Trainable Parameters: ' + str(params))
