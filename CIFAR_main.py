@@ -156,11 +156,6 @@ def main():
         torch.backends.cudnn.deterministic=True
 
 
-    if args.densityEstimation:
-        pass
-    else:
-        print('Only density estimation supported')
-        exit()
 
     dens_est_chain = [
         lambda x: (255. * x) + torch.zeros_like(x).uniform_(0., 1.),
