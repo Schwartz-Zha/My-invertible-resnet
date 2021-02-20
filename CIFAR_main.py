@@ -21,8 +21,6 @@ from models.utils_cifar import train, test, std, mean, get_hms, interpolate
 from models.conv_iResNet import multiscale_conv_iResNet as multiscale_iResNet
 
 parser = argparse.ArgumentParser(description='Train i-ResNet/ResNet on Cifar')
-parser.add_argument('-densityEstimation', '--densityEstimation', dest='densityEstimation', default=True,
-                    action='store_true', help='perform density estimation')
 parser.add_argument('--optimizer', default="adamax", type=str, help="optimizer", choices=["adam", "adamax", "sgd"])
 parser.add_argument('--lr', default=0.003, type=float, help='learning rate')
 parser.add_argument('--coeff', default=0.9, type=float, help='contraction coefficient for linear layers')
@@ -35,7 +33,6 @@ parser.add_argument('--batch', default=64, type=int, help='batch size')
 parser.add_argument('--init_batch', default=1024, type=int, help='init batch size')
 parser.add_argument('--init_ds', default=2, type=int, help='initial downsampling')
 parser.add_argument('--warmup_epochs', default=1, type=int, help='epochs for warmup')
-parser.add_argument('--inj_pad', default=0, type=int, help='initial inj padding')
 parser.add_argument('--epochs', default=200, type=int, help='number of epochs')
 parser.add_argument('--nBlocks', nargs='+', type=int, default=[16, 16, 16])
 parser.add_argument('--nStrides', nargs='+', type=int, default=[1, 2, 2])
@@ -240,7 +237,7 @@ def main():
             model = multiscale_iResNet(in_shape,
                                        args.nBlocks, args.nStrides, args.nChannels,
                                        args.init_ds == 2,
-                                       args.inj_pad, args.coeff, args.densityEstimation,
+                                       args.coeff,
                                        args.nClasses, 
                                        args.numTraceSamples, args.numSeriesTerms,
                                        args.powerIterSpectralNorm,

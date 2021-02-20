@@ -230,8 +230,8 @@ class scale_block(nn.Module):
 
 
 class multiscale_conv_iResNet(nn.Module):
-    def __init__(self, in_shape, nBlocks, nStrides, nChannels, init_squeeze=False, inj_pad=0,
-                 coeff=.9, density_estimation=False, nClasses=None,
+    def __init__(self, in_shape, nBlocks, nStrides, nChannels, init_squeeze=False,
+                 coeff=.9, nClasses=None,
                  numTraceSamples=1, numSeriesTerms=1,
                  n_power_iter=5,
                  actnorm=True, learn_prior=True, nonlin="relu"):
@@ -242,21 +242,15 @@ class multiscale_conv_iResNet(nn.Module):
         else:
             self.init_squeeze = None
 
-        if inj_pad > 0:
-            self.inj_pad = injective_pad(inj_pad)
-        else:
-            self.inj_pad = None
-
         if init_squeeze:
             in_shape = downsample_shape(in_shape)
-        in_shape = (in_shape[0] + inj_pad, in_shape[1], in_shape[2])  # adjust channels
+        in_shape = (in_shape[0], in_shape[1], in_shape[2])  # adjust channels
 
         self.nBlocks = nBlocks
-        self.density_estimation = density_estimation
         self.nClasses = nClasses
         # parameters for trace estimation
-        self.numTraceSamples = numTraceSamples if density_estimation else 0
-        self.numSeriesTerms = numSeriesTerms if density_estimation else 0
+        self.numTraceSamples = numTraceSamples
+        self.numSeriesTerms = numSeriesTerms
         self.n_power_iter = n_power_iter
 
         self.stack, self.in_shapes = self._make_stack(in_shape, nBlocks,
@@ -266,7 +260,6 @@ class multiscale_conv_iResNet(nn.Module):
         self._make_prior(learn_prior)
         # make classifier
         self._make_classifier(self.final_shape(), nClasses)
-        assert (nClasses is not None or density_estimation), "Must be either classifier or density estimator"
 
     def final_shape(self):
         return self.stack[-1].out_shapes[-1]
@@ -328,9 +321,6 @@ class multiscale_conv_iResNet(nn.Module):
         if self.init_squeeze is not None:
             x = self.init_squeeze.forward(x)
 
-        if self.inj_pad is not None:
-            x = self.inj_pad.forward(x)
-
         zs = []
         traces = []
         cur_act = x
@@ -345,23 +335,17 @@ class multiscale_conv_iResNet(nn.Module):
             traces.append(trace)
         zs.append(cur_act)  # add last activation to zs
 
-        # no classification head
-        if self.density_estimation:
-            # add logdets
-            tmp_trace = torch.zeros_like(traces[0])
-            for k in range(len(traces)):
-                tmp_trace += traces[k]
+        # add logdets
+        tmp_trace = torch.zeros_like(traces[0])
+        for k in range(len(traces)):
+            tmp_trace += traces[k]
 
-            bs = zs[0].size(0)
-            zs_flat = [z.view(bs, -1) for z in zs]
-            z = torch.cat(zs_flat, 1)
-            logpz = self.logpz(z)
-            return zs, logpz, tmp_trace
+        bs = zs[0].size(0)
+        zs_flat = [z.view(bs, -1) for z in zs]
+        z = torch.cat(zs_flat, 1)
+        logpz = self.logpz(z)
+        return zs, logpz, tmp_trace
 
-        # classification head
-        else:
-            logits = self.classifier(zs[-1])
-            return logits, zs
 
     def inverse(self, zs, max_iter=10):
         """ iresnet inverse """
@@ -380,8 +364,6 @@ class multiscale_conv_iResNet(nn.Module):
                     cur_act = block.inverse(cur_act, maxIter=max_iter)
 
             x = cur_act
-            if self.inj_pad is not None:
-                x = self.inj_pad.inverse(x)
 
             if self.init_squeeze is not None:
                 x = self.init_squeeze.inverse(x)
@@ -399,7 +381,7 @@ class multiscale_conv_iResNet(nn.Module):
         return zs
 
 
-    def sample(self, batch_size, max_iter=10):
+    def sample(self, batch_size, max_iter=100):
         """sample from prior and invert"""
         with torch.no_grad():
             prior = self.prior()
