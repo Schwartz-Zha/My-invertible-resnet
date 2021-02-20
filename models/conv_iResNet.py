@@ -234,7 +234,7 @@ class multiscale_conv_iResNet(nn.Module):
                  coeff=.9, nClasses=None,
                  numTraceSamples=1, numSeriesTerms=1,
                  n_power_iter=5,
-                 actnorm=True, learn_prior=True, nonlin="relu"):
+                 actnorm=True, nonlin="relu", use_label=True):
         super(multiscale_conv_iResNet, self).__init__()
         assert len(nBlocks) == len(nStrides) == len(nChannels)
         if init_squeeze:
@@ -257,9 +257,11 @@ class multiscale_conv_iResNet(nn.Module):
                                                       nStrides, nChannels, numSeriesTerms, numTraceSamples,
                                                       coeff, actnorm, n_power_iter, nonlin)
         # make prior distribution
-        self._make_prior(learn_prior)
-        # make classifier
-        self._make_classifier(self.final_shape(), nClasses)
+        if use_label:
+            self._make_prior_label()
+        else:
+            self._make_prior()
+        self.use_label = use_label
 
     def final_shape(self):
         return self.stack[-1].out_shapes[-1]
@@ -292,23 +294,14 @@ class multiscale_conv_iResNet(nn.Module):
             blocks.append(block)
         return blocks, in_shapes
 
-    def _make_prior(self, learn_prior):
+    def _make_prior(self):
         dim = torch.prod(torch.tensor(self.in_shapes[0]))
-        self.prior_mu = nn.Parameter(torch.zeros((dim,)).float(), requires_grad=learn_prior)
-        self.prior_logstd = nn.Parameter(torch.zeros((dim,)).float(), requires_grad=learn_prior)
+        self.prior_mu = nn.Parameter(torch.zeros((dim,)).float(), requires_grad=True)
+        self.prior_logstd = nn.Parameter(torch.zeros((dim,)).float(), requires_grad=True)
 
-    def _make_classifier(self, final_shape, nClasses):
-        if nClasses is None:
-            self.logits = None
-        else:
-            self.bn1 = nn.BatchNorm2d(final_shape[0], momentum=0.9)
-            self.logits = nn.Linear(final_shape[0], nClasses)
-
-    def classifier(self, z):
-        out = F.relu(self.bn1(z))
-        out = F.avg_pool2d(out, out.size(2))
-        out = out.view(out.size(0), out.size(1))
-        return self.logits(out)
+    def _make_prior_label(self):
+        self.mean_net = LabelNet(self.nClasses, self.input_shape)
+        self.logstd_net = LabelNet(self.nClasses, self.input_shape)
 
     def prior(self):
         return distributions.Normal(self.prior_mu, torch.exp(self.prior_logstd))
@@ -316,7 +309,15 @@ class multiscale_conv_iResNet(nn.Module):
     def logpz(self, z):
         return self.prior().log_prob(z.view(z.size(0), -1)).sum(dim=1)
 
-    def forward(self, x, ignore_logdet=False):
+    def logpz_label(self, z, labels, nClasses=10):
+        labels = labels.view(z.size(0), 1)
+        labels_onehot = torch.zeros(labels.size(0), nClasses).to(labels.device)
+        labels_onehot.scatter_(1, labels, 1)
+        mean = self.mean_net(labels_onehot).view(z.size(0), -1)
+        logstd = self.logstd_net(labels_onehot).view(z.size(0), -1)
+        return torch.distributions.Normal(mean, torch.exp(logstd)).log_prob(z).sum(dim=1)
+
+    def forward(self, x, labels ,ignore_logdet=False):
         """ iresnet forward """
         if self.init_squeeze is not None:
             x = self.init_squeeze.forward(x)
@@ -343,7 +344,10 @@ class multiscale_conv_iResNet(nn.Module):
         bs = zs[0].size(0)
         zs_flat = [z.view(bs, -1) for z in zs]
         z = torch.cat(zs_flat, 1)
-        logpz = self.logpz(z)
+        if self.use_label:
+            logpz = self.logpz_label(z, labels, self.nClasses)
+        else:
+            logpz = self.logpz(z)
         return zs, logpz, tmp_trace
 
 
@@ -395,6 +399,26 @@ class multiscale_conv_iResNet(nn.Module):
                 layer.numSeriesTerms = n_terms
 
 
+
+class LabelNet(torch.nn.Module):
+    def __init__(self, nClasses=10, output_shape=[3, 32, 32]):
+        super(LabelNet, self).__init__()
+        self.net_head = torch.nn.Sequential(
+            torch.nn.Linear(nClasses, int(torch.prod(torch.tensor(output_shape))) // 16),
+            torch.nn.ELU()
+        )
+        self.transposed_conv = torch.nn.Sequential(
+            torch.nn.ConvTranspose2d(in_channels=output_shape[0], out_channels=output_shape[0], kernel_size=2, stride=2),
+            torch.nn.ELU(),
+            torch.nn.ConvTranspose2d(in_channels=output_shape[0], out_channels=output_shape[0], kernel_size=2, stride=2),
+            torch.nn.ELU()
+        )
+        self.output_shape = output_shape
+    def forward(self, labels_onehot):
+        head = self.net_head(labels_onehot).view(labels_onehot.size(0), self.output_shape[0], self.output_shape[1]//4,
+                                                 self.output_shape[2]//4)
+        out = self.transposed_conv(head)
+        return out
 #
 # class conv_iResNet(nn.Module):
 #     def __init__(self, in_shape, nBlocks, nStrides, nChannels, init_ds=2, inj_pad=0,

@@ -45,14 +45,13 @@ parser.add_argument('-interpolate', '--interpolate', dest='interpolate', action=
 parser.add_argument('-drop_two', '--drop_two', dest='drop_two', action='store_true', help='2d dropout on')
 parser.add_argument('-nesterov', '--nesterov', dest='nesterov', action='store_true',
                     help='nesterov momentum')
+parser.add_argument('--use_label', default=True, type=bool, help='Whether use label information')
 parser.add_argument('-norm', '--norm', dest='norm', action='store_true',
                     help='compute norms of conv operators')
 parser.add_argument('-analysisTraceEst', '--analysisTraceEst', dest='analysisTraceEst', action='store_true',
                     help='analysis of trace estimation')
 parser.add_argument('-multiScale', '--multiScale', dest='multiScale', action='store_true', default=True,
                     help='use multiscale')
-parser.add_argument('-fixedPrior', '--fixedPrior', dest='fixedPrior', action='store_true',
-                    help='use fixed prior, default is learned prior')
 parser.add_argument('-noActnorm', '--noActnorm', dest='noActnorm', action='store_true',
                     help='disable actnorm, default uses actnorm')
 parser.add_argument('--nonlin', default="elu", type=str, choices=["relu", "elu", "sorting", "softplus"])
@@ -134,14 +133,17 @@ def get_init_batch(dataloader, batch_size):
     gets a batch to use for init
     """
     batches = []
+    targets = []
     seen = 0
     for x, y in dataloader:
         batches.append(x)
+        targets.append(y)
         seen += x.size(0)
         if seen >= batch_size:
             break
     batch = torch.cat(batches)
-    return batch
+    target = torch.cat(targets)
+    return batch, target
 
 
 def main():
@@ -237,8 +239,7 @@ def main():
                                        args.numTraceSamples, args.numSeriesTerms,
                                        args.powerIterSpectralNorm,
                                        actnorm=(not args.noActnorm),
-                                       learn_prior=(not args.fixedPrior),
-                                       nonlin=args.nonlin)
+                                       nonlin=args.nonlin, use_label=args.use_label)
         else:
             # model = iResNet(nBlocks=args.nBlocks, nStrides=args.nStrides,
             #                 nChannels=args.nChannels, nClasses=args.nClasses,
@@ -259,10 +260,10 @@ def main():
 
     model = get_model(args)
     # init actnrom parameters
-    init_batch = get_init_batch(trainloader, args.init_batch)
+    init_batch, init_target = get_init_batch(trainloader, args.init_batch)
     print("initializing actnorm parameters...")
     with torch.no_grad():
-        model(init_batch, ignore_logdet=True)
+        model(init_batch, init_target , ignore_logdet=True)
     print("initialized")
 
     use_cuda = torch.cuda.is_available()

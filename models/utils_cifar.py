@@ -98,7 +98,7 @@ def train(args, model, optimizer, epoch, trainloader, trainset, viz, use_cuda, t
         inputs, targets = Variable(inputs, requires_grad=True), Variable(targets)
         
 
-        _, logpz, trace = model(inputs)  # Forward Propagation
+        _, logpz, trace = model(inputs, targets, ignore_logdet=False)  # Forward Propagation
         # compute loss
         logpx = logpz + trace
         loss = bits_per_dim(logpx, inputs).mean()
@@ -180,7 +180,7 @@ def test(best_result, args, model, epoch, testloader, viz, use_cuda, test_log):
             inputs, targets = inputs.cuda(), targets.cuda()
         inputs, targets = Variable(inputs, requires_grad=True), Variable(targets)
 
-        z, logpz, trace = model(inputs)
+        z, logpz, trace = model(inputs, targets, ignore_logdet=False)
         logpx = logpz + trace
         loss = bits_per_dim(logpx, inputs)
 
@@ -330,4 +330,3 @@ def interpolate(model, testloader, testset, epoch, use_cuda, best_acc, dataset, 
         best_acc = acc
     return best_acc
 
-softmax = nn.Softmax(dim=1)
