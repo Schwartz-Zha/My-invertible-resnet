@@ -98,17 +98,13 @@ def train(args, model, optimizer, epoch, trainloader, trainset, viz, use_cuda, t
         inputs, targets = Variable(inputs, requires_grad=True), Variable(targets)
         
 
-        if args.densityEstimation: # density estimation
-            _, logpz, trace = model(inputs)  # Forward Propagation
-            # compute loss
-            logpx = logpz + trace
-            loss = bits_per_dim(logpx, inputs).mean()
-        else: # classification
-            out, _ = model(inputs)
-            loss = criterion(out, targets) # Loss
+        _, logpz, trace = model(inputs)  # Forward Propagation
+        # compute loss
+        logpx = logpz + trace
+        loss = bits_per_dim(logpx, inputs).mean()
         
         # logging for sigmas. NOTE: needs to be done before backward-call
-        if args.densityEstimation and args.log_verbose:
+        if args.log_verbose:
             if batch_idx % args.log_every == 0:
                 sigmas = []
                 for k in model.state_dict().keys():
@@ -122,69 +118,57 @@ def train(args, model, optimizer, epoch, trainloader, trainset, viz, use_cuda, t
         loss.backward()  # Backward Propagation
         optimizer.step()  # Optimizer update
                 
-        if args.densityEstimation: # logging for density estimation
-            if batch_idx % args.log_every == 0:
-                mean_trace = trace.mean().item()
-                mean_logpz = logpz.mean().item()
-                sys.stdout.write('\r')
-                sys.stdout.write('| Epoch [%3d/%3d] Iter[%3d/%3d]\t\t%% bits/dim: %.3f Trace: %.3f  logp(z) %.3f'
-                                 % (epoch, args.epochs, batch_idx+1,
-                                    (len(trainset)//args.batch)+1, loss,  mean_trace, mean_logpz))
-                sys.stdout.flush()
+        # logging
+        if batch_idx % args.log_every == 0:
+            mean_trace = trace.mean().item()
+            mean_logpz = logpz.mean().item()
+            sys.stdout.write('\r')
+            sys.stdout.write('| Epoch [%3d/%3d] Iter[%3d/%3d]\t\t%% bits/dim: %.3f Trace: %.3f  logp(z) %.3f'
+                             % (epoch, args.epochs, batch_idx+1,
+                                (len(trainset)//args.batch)+1, loss,  mean_trace, mean_logpz))
+            sys.stdout.flush()
+            if viz is not None:
+                line_plot(viz, "bits/dim", cur_iter, loss.item())
+                line_plot(viz, "logp(z)", cur_iter, mean_logpz)
+                line_plot(viz, "log|df/dz|", cur_iter, mean_trace)
+            # file logging
+            log_dict = {"iter": cur_iter, "loss": loss.item(), "logpz": mean_logpz, "logdet": mean_trace, "epoch": epoch}
+            train_log.write("{}\n".format(json.dumps(log_dict)))
+            train_log.flush()
+
+            if args.log_verbose:
+                # grad_norm_2 = sum((p.grad.norm()**2).item() for p in model.parameters() if p.grad is not None)
+                grad_norm_inf = max(p.grad.data.abs().max().item() for p in model.parameters() if p.grad is not None)
+                # line_plot(viz, "grad_norm_2", cur_iter, grad_norm_2)
                 if viz is not None:
-                    line_plot(viz, "bits/dim", cur_iter, loss.item())
-                    line_plot(viz, "logp(z)", cur_iter, mean_logpz)
-                    line_plot(viz, "log|df/dz|", cur_iter, mean_trace)
-                # file logging
-                log_dict = {"iter": cur_iter, "loss": loss.item(), "logpz": mean_logpz, "logdet": mean_trace, "epoch": epoch}
-                train_log.write("{}\n".format(json.dumps(log_dict)))
-                train_log.flush()
-
-                if args.log_verbose:
-                    # grad_norm_2 = sum((p.grad.norm()**2).item() for p in model.parameters() if p.grad is not None)
-                    grad_norm_inf = max(p.grad.data.abs().max().item() for p in model.parameters() if p.grad is not None)
-                    # line_plot(viz, "grad_norm_2", cur_iter, grad_norm_2)
+                    line_plot(viz, "grad_norm_inf", cur_iter, grad_norm_inf)
+                # log actnorm scaling
+                if not args.noActnorm:
+                    actnorm_scales = []
+                    actnorm_scales_min = []
+                    actnorm_l2 = []
+                    for k in model.state_dict().keys():
+                        if 'actnorm' and '_log_scale' in k:
+                            scale = torch.max(model.state_dict()[k])
+                            scale_min = torch.min(model.state_dict()[k])
+                            l2 = torch.norm(model.state_dict()[k])
+                            actnorm_scales.append(scale.item())
+                            actnorm_scales_min.append(scale_min.item())
+                            actnorm_l2.append(l2.item())
+                    actnorm_scales = np.array(actnorm_scales)
+                    actnorm_scales_min = np.array(actnorm_scales_min)
+                    actnorm_l2 = np.array(actnorm_l2)
                     if viz is not None:
-                        line_plot(viz, "grad_norm_inf", cur_iter, grad_norm_inf)
-                    # log actnorm scaling
-                    if not args.noActnorm:
-                        actnorm_scales = []
-                        actnorm_scales_min = []
-                        actnorm_l2 = []
-                        for k in model.state_dict().keys():
-                            if 'actnorm' and '_log_scale' in k:
-                                scale = torch.max(model.state_dict()[k])
-                                scale_min = torch.min(model.state_dict()[k])
-                                l2 = torch.norm(model.state_dict()[k])
-                                actnorm_scales.append(scale.item())
-                                actnorm_scales_min.append(scale_min.item())
-                                actnorm_l2.append(l2.item())
-                        actnorm_scales = np.array(actnorm_scales)
-                        actnorm_scales_min = np.array(actnorm_scales_min)
-                        actnorm_l2 = np.array(actnorm_l2)
-                        if viz is not None:
-                            line_plot(viz, "max actnorm scale per layer", cur_iter, actnorm_scales)
-                            line_plot(viz, "min actnorm scale per layer", cur_iter, actnorm_scales_min)
-                            line_plot(viz, "l2 norm of actnorm scale per layer", cur_iter, actnorm_l2)
-                    # learned prior logging
-                    if not args.fixedPrior:
-                        prior_scales_max = torch.max(model.state_dict()['module.prior_logstd'])
-                        prior_scales_min = torch.min(model.state_dict()['module.prior_logstd'])
-                        if viz is not None:
-                            line_plot(viz, "max prior scale", cur_iter, prior_scales_max.item())
-                            line_plot(viz, "min prior scale", cur_iter, prior_scales_min.item())
-
-        else: # logging for classification
-            _, predicted = torch.max(out.data, 1)
-            total += targets.size(0)
-            correct += predicted.eq(targets.data).cpu().sum()    
-            if batch_idx % 1 == 0:
-                sys.stdout.write('\r')
-                sys.stdout.write('| Epoch [%3d/%3d] Iter[%3d/%3d]\t\tLoss: %.4f Acc@1: %.3f'
-                                 % (epoch, args.epochs, batch_idx+1,
-                                    (len(trainset)//args.batch)+1, loss.data.item(),
-                                    100.*correct.type(torch.FloatTensor)/float(total)))
-                sys.stdout.flush()
+                        line_plot(viz, "max actnorm scale per layer", cur_iter, actnorm_scales)
+                        line_plot(viz, "min actnorm scale per layer", cur_iter, actnorm_scales_min)
+                        line_plot(viz, "l2 norm of actnorm scale per layer", cur_iter, actnorm_l2)
+                # learned prior logging
+                if not args.fixedPrior:
+                    prior_scales_max = torch.max(model.state_dict()['module.prior_logstd'])
+                    prior_scales_min = torch.min(model.state_dict()['module.prior_logstd'])
+                    if viz is not None:
+                        line_plot(viz, "max prior scale", cur_iter, prior_scales_max.item())
+                        line_plot(viz, "min prior scale", cur_iter, prior_scales_min.item())
 
 
 def test(best_result, args, model, epoch, testloader, viz, use_cuda, test_log):
@@ -196,52 +180,46 @@ def test(best_result, args, model, epoch, testloader, viz, use_cuda, test_log):
             inputs, targets = inputs.cuda(), targets.cuda()
         inputs, targets = Variable(inputs, requires_grad=True), Variable(targets)
 
-        if args.densityEstimation:
-            z, logpz, trace = model(inputs)
-            logpx = logpz + trace
-            loss = bits_per_dim(logpx, inputs)
+        z, logpz, trace = model(inputs)
+        logpx = logpz + trace
+        loss = bits_per_dim(logpx, inputs)
 
-            objective += -loss.cpu().sum().item()
+        objective += -loss.cpu().sum().item()
 
-            # visualization and samples
-            if batch_idx == 0:
-                x_re = model.module.inverse(z, 10) if use_cuda else model.inverse(z, 10)
-                err = (inputs - x_re).abs().sum()
-                if viz is not None:
-                    line_plot(viz, "recons err", epoch, err.item())
-                bs = inputs.size(0)
-                samples = model.module.sample(bs, 10) if use_cuda else model.sample(bs, 10)
-                im_dir = os.path.join(args.save_dir, 'ims')
-                try_make_dir(im_dir)
-                torchvision.utils.save_image(samples.cpu(),
-                                             os.path.join(im_dir, "samples_{}.jpg".format(epoch)),
-                                             int(bs**.5), normalize=True)
-                torchvision.utils.save_image(inputs.cpu(),
-                                             os.path.join(im_dir, "data_{}.jpg".format(epoch)),
-                                             int(bs ** .5), normalize=True)
-                torchvision.utils.save_image(x_re.cpu(),
-                                             os.path.join(im_dir, "recons_{}.jpg".format(epoch)),
-                                             int(bs ** .5), normalize=True)
-                if viz is not None:
-                    images_plot(viz, "data", out_im(inputs).cpu())
-                    images_plot(viz, "recons", out_im(x_re).cpu())
-                    images_plot(viz, "samples", out_im(samples).cpu())
-                del x_re, err, samples
+        # visualization and samples
+        if batch_idx == 0:
+            x_re = model.module.inverse(z, 10) if use_cuda else model.inverse(z, 10)
+            err = (inputs - x_re).abs().sum()
+            if viz is not None:
+                line_plot(viz, "recons err", epoch, err.item())
+            bs = inputs.size(0)
+            samples = model.module.sample(bs, 10) if use_cuda else model.sample(bs, 10)
+            im_dir = os.path.join(args.save_dir, 'ims')
+            try_make_dir(im_dir)
+            torchvision.utils.save_image(samples.cpu(),
+                                         os.path.join(im_dir, "samples_{}.jpg".format(epoch)),
+                                         int(bs**.5), normalize=True)
+            torchvision.utils.save_image(inputs.cpu(),
+                                         os.path.join(im_dir, "data_{}.jpg".format(epoch)),
+                                         int(bs ** .5), normalize=True)
+            torchvision.utils.save_image(x_re.cpu(),
+                                         os.path.join(im_dir, "recons_{}.jpg".format(epoch)),
+                                         int(bs ** .5), normalize=True)
+            if viz is not None:
+                images_plot(viz, "data", out_im(inputs).cpu())
+                images_plot(viz, "recons", out_im(x_re).cpu())
+                images_plot(viz, "samples", out_im(samples).cpu())
+            del x_re, err, samples
 
-            del z, logpz, trace, logpx, loss
+        del z, logpz, trace, logpx, loss
 
-        else:
-            out, out_bij = model(inputs)
-            _, predicted = torch.max(out.data, 1)
-            objective += predicted.eq(targets.data).sum().item()
-            del out, out_bij, _, predicted
 
         total += targets.size(0)
         del inputs, targets
 
     objective = float(objective) / float(total)
     if viz is not None:
-        line_plot(viz, "test bits/dim" if args.densityEstimation else "test acc", epoch, objective)
+        line_plot(viz, "test bits/dim" , epoch, objective)
     print("\n| Validation Epoch #%d\t\t\tobjective =  %.4f" % (epoch, objective), flush=True)
     if objective > best_result:
         print('\n| Saving Best model...\t\t\tobjective = %.4f%%' % (objective), flush=True)
