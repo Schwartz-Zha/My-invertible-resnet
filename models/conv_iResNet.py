@@ -402,7 +402,7 @@ class multiscale_conv_iResNet(nn.Module):
                     samples = dist.rsample((batch_size,))
                     samples  = self.inverse(self.split_zs(samples), max_iter=max_iter)
                     samples_list.append(samples)
-                samples = torch.cat(samples, dim=0)
+                samples = torch.cat(samples_list, dim=0)
                 return samples
             else:
                 prior = self.prior()
