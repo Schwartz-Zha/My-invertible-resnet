@@ -346,7 +346,7 @@ def main():
         epoch
     except NameError:
         epoch = 0
-    
+
 
     print('Testing model')
     test_log = open(os.path.join(args.save_dir, "test_log.txt"), 'w')
