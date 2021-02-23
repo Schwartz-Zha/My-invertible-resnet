@@ -11,8 +11,6 @@ import json
 
 
 
-
-import multiprocessing
 criterion = nn.CrossEntropyLoss()
 
 mean = {

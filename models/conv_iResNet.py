@@ -399,7 +399,7 @@ class multiscale_conv_iResNet(nn.Module):
                     mean = self.mean_net(pseudo_label).view(1, -1)
                     logstd = self.logstd_net(pseudo_label).view(1, -1)
                     dist = torch.distributions.Normal(mean, torch.exp(logstd))
-                    samples = dist.rsample(batch_size)
+                    samples = dist.rsample((batch_size,))
                     samples  = self.inverse(samples, max_iter=max_iter)
                     samples_list.append(samples)
                 samples = torch.cat(samples, dim=0)
