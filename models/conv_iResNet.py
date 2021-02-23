@@ -390,10 +390,25 @@ class multiscale_conv_iResNet(nn.Module):
     def sample(self, batch_size, max_iter=100):
         """sample from prior and invert"""
         with torch.no_grad():
-            prior = self.prior()
-            z = prior.rsample((batch_size,))
-            zs = self.split_zs(z)
-            return self.inverse(zs, max_iter=max_iter)
+            if self.use_label:
+                samples_list = []
+                for i in range(self.nClasses):
+                    pseudo_label = torch.zeros([1, self.nClasses])
+                    pseudo_label[0, i] = 1
+                    pseudo_label = pseudo_label.to(next(self.mean_net.parameters()).device)
+                    mean = self.mean_net(pseudo_label).view(1, -1)
+                    logstd = self.logstd_net(pseudo_label).view(1, -1)
+                    dist = torch.distributions.Normal(mean, torch.exp(logstd))
+                    samples = dist.rsample(batch_size)
+                    samples  = self.inverse(samples, max_iter=max_iter)
+                    samples_list.append(samples)
+                samples = torch.cat(samples, dim=0)
+                return samples
+            else:
+                prior = self.prior()
+                z = prior.rsample((batch_size,))
+                zs = self.split_zs(z)
+                return self.inverse(zs, max_iter=max_iter)
 
     def set_num_terms(self, n_terms):
         for block in self.stack:

@@ -193,7 +193,10 @@ def test(best_result, args, model, epoch, testloader, viz, use_cuda, test_log):
             if viz is not None:
                 line_plot(viz, "recons err", epoch, err.item())
             bs = inputs.size(0)
-            samples = model.module.sample(bs, 10) if use_cuda else model.sample(bs, 10)
+            if not args.use_label:
+                samples = model.module.sample(bs, 100) if use_cuda else model.sample(bs, 100)
+            else:
+                samples = model.module.sample(5,100) if use_cuda else model.sample(5,100)
             im_dir = os.path.join(args.save_dir, 'ims')
             try_make_dir(im_dir)
             torchvision.utils.save_image(samples.cpu(),
