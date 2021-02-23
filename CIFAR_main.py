@@ -342,8 +342,11 @@ def main():
         elapsed_time += epoch_time
         print('| Elapsed time : %d:%02d:%02d' % (get_hms(elapsed_time)))
 
-    if epoch is None:
+    try:
+        epoch
+    except NameError:
         epoch = 0
+    
 
     print('Testing model')
     test_log = open(os.path.join(args.save_dir, "test_log.txt"), 'w')
