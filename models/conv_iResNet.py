@@ -182,9 +182,9 @@ class scale_block(nn.Module):
                                       input_nonlin, coeff, actnorm, n_power_iter, nonlin)
         if do_attention:
             if squeeze:
-                self.attention = InvAttention_concat(conv_shape[0], 4)
+                self.attention = InvAttention_concat(conv_shape[0], k=4, numTraceSamples=n_samples, numSeriesTerms=n_terms)
             else:
-                self.attention = InvAttention_concat(conv_shape[0], 1)
+                self.attention = InvAttention_concat(conv_shape[0], k=1, numTraceSamples=n_samples, numSeriesTerms=n_terms)
         else:
             self.attention = None
 

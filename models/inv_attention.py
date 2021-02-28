@@ -46,11 +46,12 @@ def turbulance_hook(module, inputs):
 
 
 class InvAttention_concat(nn.Module):
-    def __init__(self, in_c, k=4):
+    def __init__(self, in_c, k=4, numTraceSamples = 1, numSeriesTerms = 5):
         super(InvAttention_concat, self).__init__()
         self.res_branch = Attention_concat(in_c, k=k)
         self.res_branch.register_forward_pre_hook(turbulance_hook)
-
+        self.numTraceSamples = numTraceSamples
+        self.numSeriesTerms = numSeriesTerms
     def forward(self, x, ignore_logdet=False):
         Fx = self.res_branch(x)
         if (self.numTraceSamples == 0 and self.numSeriesTerms == 0) or ignore_logdet:
