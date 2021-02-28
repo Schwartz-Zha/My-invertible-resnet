@@ -15,7 +15,7 @@ from .model_utils import MaxMinGroup
 from spectral_norm_conv_inplace import spectral_norm_conv
 from spectral_norm_fc import spectral_norm_fc
 from matrix_utils import power_series_matrix_logarithm_trace
-
+from .inv_attention import InvAttention_concat
 
 
 # class LogisticTransform(torch.distributions.Transform):
@@ -156,7 +156,7 @@ class conv_iresnet_block(nn.Module):
 
 
 class scale_block(nn.Module):
-    def __init__(self, steps, in_shape, int_dim, squeeze=True, n_terms=0, n_samples=0,
+    def __init__(self, steps, in_shape, int_dim, squeeze=True, do_attention=False, n_terms=0, n_samples=0,
                  coeff=.9, input_nonlin=True, actnorm=True, split=True,
                  n_power_iter=5, nonlin="relu"):
         super(scale_block, self).__init__()
@@ -180,6 +180,13 @@ class scale_block(nn.Module):
 
         self.stack = self._make_stack(steps, n_terms, n_samples, conv_shape, int_dim,
                                       input_nonlin, coeff, actnorm, n_power_iter, nonlin)
+        if do_attention:
+            if squeeze:
+                self.attention = InvAttention_concat(conv_shape[0], 4)
+            else:
+                self.attention = InvAttention_concat(conv_shape[0], 1)
+        else:
+            self.attention = None
 
     @staticmethod
     def _make_stack(steps, n_terms, n_samples, in_shape, int_dim,
@@ -208,6 +215,10 @@ class scale_block(nn.Module):
         for k in range(len(traces)):
             trace += traces[k]
 
+        if self.attention is not None:
+            z, tmp_trace = self.attention(z, ignore_logdet=ignore_logdet)
+            trace = trace + tmp_trace
+
         if self.split is None:
             return [z], trace
         else:
@@ -222,6 +233,9 @@ class scale_block(nn.Module):
                 assert z2 is not None
                 x = self.split.inverse(z, z2)
 
+            if self.attention is not None:
+                x = self.attention.inverse(x)
+
             for block in reversed(self.stack):
                 x = block.inverse(x, maxIter=maxIter)
 
@@ -232,7 +246,7 @@ class scale_block(nn.Module):
 
 
 class multiscale_conv_iResNet(nn.Module):
-    def __init__(self, in_shape, nBlocks, nStrides, nChannels, init_squeeze=False,
+    def __init__(self, in_shape, nBlocks, nStrides,nChannels, doAttention,init_squeeze=False,
                  coeff=.9, nClasses=None,
                  numTraceSamples=1, numSeriesTerms=1,
                  n_power_iter=5,
@@ -258,7 +272,7 @@ class multiscale_conv_iResNet(nn.Module):
         self.n_power_iter = n_power_iter
 
         self.stack, self.in_shapes = self._make_stack(in_shape, nBlocks,
-                                                      nStrides, nChannels, numSeriesTerms, numTraceSamples,
+                                                      nStrides, nChannels, doAttention, numSeriesTerms, numTraceSamples,
                                                       coeff, actnorm, n_power_iter, nonlin)
         # make prior distribution
         if use_label:
@@ -281,14 +295,14 @@ class multiscale_conv_iResNet(nn.Module):
     def get_in_shapes(self):
         return self.in_shapes
 
-    def _make_stack(self, in_shape, nSteps, nStrides, nChannels, n_terms,
+    def _make_stack(self, in_shape, nSteps, nStrides, nChannels, doAttention, n_terms,
                     n_samples, coeff, actnorm, n_power_iter, nonlin):
         blocks = nn.ModuleList()
         n_blocks = len(nSteps)
         in_shapes = [in_shape]
-        for i, (steps, stride, channels) in enumerate(zip(nSteps, nStrides, nChannels)):
+        for i, (steps, stride, channels, do_attention) in enumerate(zip(nSteps, nStrides, nChannels, doAttention)):
             block = scale_block(steps, in_shape, channels,
-                                stride == 2, n_terms, n_samples,
+                                stride == 2, do_attention, n_terms, n_samples,
                                 coeff, i > 0, actnorm,
                                 i < n_blocks - 1,
                                 n_power_iter, 

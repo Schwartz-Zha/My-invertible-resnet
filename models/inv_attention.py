@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 from torch.nn import Parameter, Softmax
+from matrix_utils import power_series_matrix_logarithm_trace
 
 class Attention_concat(nn.Module):
     '''
@@ -49,3 +50,19 @@ class InvAttention_concat(nn.Module):
         self.res_branch = Attention_concat(in_c, k=k)
         self.res_branch.register_forward_pre_hook(turbulance_hook)
 
+    def forward(self, x, ignore_logdet=False):
+        Fx = self.res_branch(x)
+        if (self.numTraceSamples == 0 and self.numSeriesTerms == 0) or ignore_logdet:
+            trace = torch.tensor(0.)
+        else:
+            trace = power_series_matrix_logarithm_trace(Fx, x, self.numSeriesTerms, self.numTraceSamples)
+        x = x + Fx
+        return x, trace
+    def inverse(self, y, maxIter=100):
+        with torch.no_grad():
+            # inversion of ResNet-block (fixed-point iteration)
+            x = y
+            for iter_index in range(maxIter):
+                summand = self.bottleneck_block(x)
+                x = y - summand
+            return x
