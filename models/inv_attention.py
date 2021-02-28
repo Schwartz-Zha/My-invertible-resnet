@@ -35,6 +35,9 @@ class Attention_concat(nn.Module):
 
 def turbulance_hook(module, inputs):
     with torch.no_grad():
+        # for debug
+        print(type(inputs))
+        print(inputs)
         res = module.forward(inputs)
         turbu_res = module.forward(inputs * 1.0000001)
         lip = torch.dist(turbu_res, res) / torch.dist(inputs, inputs * 1.0000001)
