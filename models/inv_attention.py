@@ -40,7 +40,7 @@ def turbulance_hook(module, inputs):
         turbu_res = module.forward(x * 1.0000001)
         lip = torch.dist(turbu_res, res) / torch.dist(x, x * 1.0000001)
         if lip > 0.9:
-            module.gamma = module.gamma * (0.9 / lip)
+            module.gamma *=(0.9 / lip)
         else:
             pass
 
