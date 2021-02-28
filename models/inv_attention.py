@@ -42,3 +42,10 @@ def turbulance_hook(module, inputs):
         else:
             pass
 
+
+class InvAttention_concat(nn.Module):
+    def __init__(self, in_c, k=4):
+        super(InvAttention_concat, self).__init__()
+        self.res_branch = Attention_concat(in_c, k=k)
+        self.res_branch.register_forward_pre_hook(turbulance_hook)
+

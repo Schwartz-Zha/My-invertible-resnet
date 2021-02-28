@@ -129,19 +129,20 @@ class conv_iresnet_block(nn.Module):
         return y, trace + an_logdet
 
     def inverse(self, y, maxIter=100):
-        # inversion of ResNet-block (fixed-point iteration)
-        x = y
-        for iter_index in range(maxIter):
-            summand = self.bottleneck_block(x)
-            x = y - summand
+        with torch.no_grad():
+            # inversion of ResNet-block (fixed-point iteration)
+            x = y
+            for iter_index in range(maxIter):
+                summand = self.bottleneck_block(x)
+                x = y - summand
 
-        if self.actnorm is not None:
-            x = self.actnorm.inverse(x)
+            if self.actnorm is not None:
+                x = self.actnorm.inverse(x)
 
-        # inversion of squeeze (dimension shuffle)
-        if self.stride == 2:
-            x = self.squeeze.inverse(x)
-        return x
+            # inversion of squeeze (dimension shuffle)
+            if self.stride == 2:
+                x = self.squeeze.inverse(x)
+            return x
     
     def _wrapper_spectral_norm(self, layer, shapes, kernel_size):
         if kernel_size == 1:
@@ -214,19 +215,20 @@ class scale_block(nn.Module):
             return [z1, z2], trace
 
     def inverse(self, z, z2=None, maxIter=100):
-        if self.split is None:
-            x = z
-        else:
-            assert z2 is not None
-            x = self.split.inverse(z, z2)
+        with torch.no_grad():
+            if self.split is None:
+                x = z
+            else:
+                assert z2 is not None
+                x = self.split.inverse(z, z2)
 
-        for block in reversed(self.stack):
-            x = block.inverse(x, maxIter=maxIter)
+            for block in reversed(self.stack):
+                x = block.inverse(x, maxIter=maxIter)
 
-        if self.squeeze is None:
-            return x
-        else:
-            return self.squeeze.inverse(x)
+            if self.squeeze is None:
+                return x
+            else:
+                return self.squeeze.inverse(x)
 
 
 class multiscale_conv_iResNet(nn.Module):
