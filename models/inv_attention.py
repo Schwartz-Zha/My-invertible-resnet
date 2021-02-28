@@ -24,9 +24,6 @@ class Attention_concat(nn.Module):
         proj_key = self.key_conv(x).view(B, self.inter_c, 1, -1)  # [B, inter_c, 1, HW]
         proj_query = proj_query.repeat(1, 1, 1, H * W)
         proj_key = proj_key.repeat(1, 1, H * W, 1)
-        # # for debug
-        # print(proj_query.size())
-        # print(proj_key.size())
         concat_feature = torch.cat([proj_query, proj_key], dim=1)  # [B, 2*inter_c, HW, HW]
         energy = self.concat_conv(concat_feature).squeeze()  # [B,  HW, HW]
         attention = energy / float(H * W)
@@ -38,12 +35,10 @@ class Attention_concat(nn.Module):
 
 def turbulance_hook(module, inputs):
     with torch.no_grad():
-        # for debug
-        print(type(inputs[0]))
-        print(inputs[0].size())
-        res = module.forward(inputs[0])
-        turbu_res = module.forward(inputs * 1.0000001)
-        lip = torch.dist(turbu_res, res) / torch.dist(inputs, inputs * 1.0000001)
+        x = inputs[0]
+        res = module.forward(x)
+        turbu_res = module.forward(x * 1.0000001)
+        lip = torch.dist(turbu_res, res) / torch.dist(x, x * 1.0000001)
         if lip > 0.9:
             module.gamma = module.gamma * (0.9 / lip)
         else:
