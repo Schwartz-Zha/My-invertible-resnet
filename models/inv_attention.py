@@ -22,11 +22,11 @@ class Attention_concat(nn.Module):
         B, C, H, W = x.size()
         proj_query = self.query_conv(x).view(B, self.inter_c, -1, 1)  # [B, inter_c, HW, 1]
         proj_key = self.key_conv(x).view(B, self.inter_c, 1, -1)  # [B, inter_c, 1, HW]
-        proj_query.repeat(1, 1, 1, H * W)
-        proj_key.repeat(1, 1, H * W, 1)
-        # for debug
-        print(proj_query.size())
-        print(proj_key.size())
+        proj_query = proj_query.repeat(1, 1, 1, H * W)
+        proj_key = proj_key.repeat(1, 1, H * W, 1)
+        # # for debug
+        # print(proj_query.size())
+        # print(proj_key.size())
         concat_feature = torch.cat([proj_query, proj_key], dim=1)  # [B, 2*inter_c, HW, HW]
         energy = self.concat_conv(concat_feature).squeeze()  # [B,  HW, HW]
         attention = energy / float(H * W)
