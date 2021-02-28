@@ -19,7 +19,7 @@ class Attention_concat(nn.Module):
         self.gamma = Parameter(torch.zeros(1))
 
     def forward(self, x):
-        B, C, H, W = x.size
+        B, C, H, W = x.size()
         proj_query = self.query_conv(x).view(B, self.inter_c, -1, 1)  # [B, inter_c, HW, 1]
         proj_key = self.key_conv(x).view(B, self.inter_c, 1, -1)  # [B, inter_c, 1, HW]
         proj_query.repeat(1, 1, 1, H * W)
