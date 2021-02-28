@@ -65,6 +65,6 @@ class InvAttention_concat(nn.Module):
             # inversion of ResNet-block (fixed-point iteration)
             x = y
             for iter_index in range(maxIter):
-                summand = self.bottleneck_block(x)
+                summand = self.res_branch(x)
                 x = y - summand
             return x
