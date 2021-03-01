@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 from torch.nn import Parameter, Softmax
 from matrix_utils import power_series_matrix_logarithm_trace
+from spectral_norm_fc import spectral_norm_fc
 
 class Attention_concat(nn.Module):
     '''
@@ -50,6 +51,54 @@ class InvAttention_concat(nn.Module):
         super(InvAttention_concat, self).__init__()
         self.res_branch = Attention_concat(in_c, k=k)
         self.res_branch.register_forward_pre_hook(turbulance_hook)
+        self.numTraceSamples = numTraceSamples
+        self.numSeriesTerms = numSeriesTerms
+    def forward(self, x, ignore_logdet=False):
+        Fx = self.res_branch(x)
+        if (self.numTraceSamples == 0 and self.numSeriesTerms == 0) or ignore_logdet:
+            trace = torch.tensor(0.)
+        else:
+            trace = power_series_matrix_logarithm_trace(Fx, x, self.numSeriesTerms, self.numTraceSamples)
+        x = x + Fx
+        return x, trace
+    def inverse(self, y, maxIter=100):
+        with torch.no_grad():
+            # inversion of ResNet-block (fixed-point iteration)
+            x = y
+            for iter_index in range(maxIter):
+                summand = self.res_branch(x)
+                x = y - summand
+            return x
+
+class Attention_dot(nn.Module):
+    '''
+    Dot product, Softmax
+    '''
+    def __init__(self, input_channel_num, k=4):
+        super(Attention_dot, self).__init__()
+        self.c_in = input_channel_num
+        self.query_conv = nn.Conv2d(in_channels=self.c_in, out_channels=self.c_in // k, kernel_size=1)
+        self.key_conv = nn.Conv2d(in_channels=self.c_in, out_channels=self.c_in // k, kernel_size=1)
+        self.value_conv = spectral_norm_fc(nn.Conv2d(in_channels=self.c_in, out_channels=self.c_in, kernel_size=1),
+                                           coeff=.9, n_power_iterations=5)
+        self.gamma = Parameter(torch.zeros(1))
+        self.softmax = Softmax(dim=1)
+
+    def forward(self, x):
+        B, C, H, W = x.size()
+        proj_query = self.query_conv(x).view(B, -1, H * W).permute(0, 2, 1)  # [B, HW, C//8]
+        proj_key = self.key_conv(x).view(B, -1, H * W)  # [B, C//8, HW]
+        energy = torch.bmm(proj_query, proj_key)  # Batch matrix multiplication, [B, HW, HW]
+        attention = self.softmax(energy)
+        proj_value = self.value_conv(x).view(B, -1, H * W)  # [B, C, HW]
+        out = torch.bmm(proj_value, attention).view(B, C, H, W)
+        out = self.gamma * out + x
+        return out
+
+class InvAttention_dot(nn.Module):
+    def __init__(self, input_channel_num, k=4, numTraceSamples=1, numSeriesTerms=5):
+        super(InvAttention_dot, self).__init__()
+        self.res_branch= Attention_dot(input_channel_num, k=k)
         self.numTraceSamples = numTraceSamples
         self.numSeriesTerms = numSeriesTerms
     def forward(self, x, ignore_logdet=False):
