@@ -92,7 +92,8 @@ class Attention_dot(nn.Module):
         attention = self.softmax(energy)
         proj_value = self.value_conv(x).view(B, -1, H * W)  # [B, C, HW]
         out = torch.bmm(proj_value, attention).view(B, C, H, W)
-        out = self.gamma * out + x
+
+        out = torch.clamp(self.gamma, min=-1.0, max=1.0) * out + x
         return out
 
 class InvAttention_dot(nn.Module):
