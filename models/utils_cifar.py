@@ -197,9 +197,14 @@ def test(best_result, args, model, epoch, testloader, viz, use_cuda, test_log):
                 samples = model.module.sample(10,100) if use_cuda else model.sample(10,100)
             im_dir = os.path.join(args.save_dir, 'ims')
             try_make_dir(im_dir)
-            torchvision.utils.save_image(samples.cpu(),
-                                         os.path.join(im_dir, "samples_{}.jpg".format(epoch)),
-                                         int(bs**.5), normalize=True)
+            if not args.use_label:
+                torchvision.utils.save_image(samples.cpu(),
+                                            os.path.join(im_dir, "samples_{}.jpg".format(epoch)),
+                                            int(bs**.5), normalize=True)
+            else:
+                torchvision.utils.save_image(samples.cpu(),
+                                             os.path.join(im_dir, "samples_{}.jpg".format(epoch)),
+                                             int(100 ** .5), normalize=True)
             torchvision.utils.save_image(inputs.cpu(),
                                          os.path.join(im_dir, "data_{}.jpg".format(epoch)),
                                          int(bs ** .5), normalize=True)
