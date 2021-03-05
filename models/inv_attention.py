@@ -121,7 +121,7 @@ class InvAttention_dot(nn.Module):
 
 class Attention_dot2(nn.Module):
     '''
-    Dot product, Softmax
+    Dot product, inv
     '''
     def __init__(self, input_channel_num, k=4):
         super(Attention_dot2, self).__init__()
@@ -130,17 +130,17 @@ class Attention_dot2(nn.Module):
         self.key_conv = nn.Conv2d(in_channels=self.c_in, out_channels=self.c_in // k, kernel_size=1)
         self.value_conv = spectral_norm_fc(nn.Conv2d(in_channels=self.c_in, out_channels=self.c_in, kernel_size=1),
                                            coeff=.9, n_power_iterations=5)
+        self.nonlin = nn.ELU()
         self.gamma = Parameter(torch.zeros(1))
     def forward(self, x):
         B, C, H, W = x.size()
         proj_query = self.query_conv(x).view(B, -1, H * W).permute(0, 2, 1)  # [B, HW, C//8]
         proj_key = self.key_conv(x).view(B, -1, H * W)  # [B, C//8, HW]
         energy = torch.bmm(proj_query, proj_key)  # Batch matrix multiplication, [B, HW, HW]
-        energy = torch.exp(energy)
-        energy = energy / torch.sum(energy, dim=(1,2), keepdim=True)
+        energy = self.nonlin(energy)
+        energy = torch.sum(energy, dim=(1,2), keepdim=True)
         proj_value = self.value_conv(x).view(B, -1, H * W)  # [B, C, HW]
         out = torch.bmm(proj_value, energy).view(B, C, H, W)
-
         out = torch.clamp(self.gamma, min=-1.0, max=1.0) * out + x
         return out
 
