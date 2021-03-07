@@ -37,7 +37,7 @@ parser.add_argument('--epochs', default=200, type=int, help='number of epochs')
 parser.add_argument('--nBlocks', nargs='+', type=int, default=[16, 16, 16])
 parser.add_argument('--nStrides', nargs='+', type=int, default=[1, 2, 2])
 parser.add_argument('--nChannels', nargs='+', type=int, default=[512, 512, 512])
-parser.add_argument('--doAttention', nargs='+', type=bool, default=[True, True, False])
+parser.add_argument('--doAttention', nargs='+', type=lambda x: (str(x).lower() == 'true'), default=[True, True, False])
 parser.add_argument('--resume', default='', type=str, metavar='PATH',
                     help='path to latest checkpoint (default: none)')
 parser.add_argument('-e', '--evaluate', dest='evaluate', action='store_true',
