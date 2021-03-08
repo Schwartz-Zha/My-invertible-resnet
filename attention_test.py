@@ -90,7 +90,7 @@ def main():
             if use_cuda:
                 inputs = inputs.cuda()
             inputs = Variable(inputs, requires_grad=True)
-            output = model(inputs)
+            output = model(inputs)[0]
             loss = criterion(output, target)
             loss.backward()
             optim.step()
@@ -110,7 +110,7 @@ def main():
     img_dir = os.path.join(args.save_dir, 'ims')
     try_make_dir(img_dir)
 
-    output = model(batch)
+    output = model(batch)[0]
     inverse_input = model.inverse(output)
     torchvision.utils.save_image(batch.cpu(),
                                  os.path.join(img_dir, "data.jpg"),
