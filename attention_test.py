@@ -16,7 +16,7 @@ class Attention_Test(torch.nn.Module):
         self.attention_layer = InvAttention_dot2(12)
     def forward(self, x):
         x = self.squeeze_layer.forward(x)
-        x = self.attention_layer.forward(x)
+        x = self.attention_layer.forward(x)[0]
         return x
     def inverse(self, x):
         x = self.attention_layer.inverse(x)
@@ -91,7 +91,7 @@ def main():
             if use_cuda:
                 inputs = inputs.cuda()
             inputs = Variable(inputs, requires_grad=True)
-            output = model.forward(inputs)[0]
+            output = model.forward(inputs)
             loss = criterion(output, target)
             loss.backward()
             optim.step()
@@ -111,7 +111,7 @@ def main():
     img_dir = os.path.join(args.save_dir, 'ims')
     try_make_dir(img_dir)
 
-    output = model(batch)[0]
+    output = model(batch)
     inverse_input = model.inverse(output)
     torchvision.utils.save_image(batch.cpu(),
                                  os.path.join(img_dir, "data.jpg"),
