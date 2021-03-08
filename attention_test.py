@@ -61,9 +61,9 @@ def main():
     train_subset = torch.utils.data.Subset(trainset, list(range(1000)))
     test_subset = torch.utils.data.Subset(testset, list(range(1000)))
 
-    trainloader = torch.utils.data.DataLoader(train_subset, batch_size=args.batch,
+    trainloader = torch.utils.data.DataLoader(train_subset, batch_size=64,
                                               shuffle=True, num_workers=2, worker_init_fn=np.random.seed(1234))
-    testloader = torch.utils.data.DataLoader(test_subset, batch_size=args.batch,
+    testloader = torch.utils.data.DataLoader(test_subset, batch_size=64,
                                              shuffle=False, num_workers=2, worker_init_fn=np.random.seed(1234))
 
     model = Attention_Test()
