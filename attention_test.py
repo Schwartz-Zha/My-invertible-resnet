@@ -32,10 +32,12 @@ class Attention_Test(torch.nn.Module):
         return lip
 
 class Conv_Test(torch.nn.Module):
-    def __init__(self):
+    def __init__(self, use_cuda):
         super(Conv_Test, self).__init__()
         self.squeeze_layer = squeeze(2)
         self.conv_layer = self._spec_norm_wrapper(torch.nn.Conv2d(in_channels=12, out_channels=12, kernel_size=1))
+        if use_cuda:
+            self.conv_layer = self.conv_layer.cuda()
     def forward(self, x):
         x = self.squeeze_layer.forward(x)
         Fx =  self.conv_layer.forward(x)
