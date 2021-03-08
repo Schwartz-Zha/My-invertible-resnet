@@ -40,8 +40,8 @@ class Attention_Test3(torch.nn.Module):
         x = self.squeeze_layer.forward(x)
         x = self.attention_layer.forward(x)[0]
         return x
-    def inverse(self, x):
-        x = self.attention_layer.inverse(x)
+    def inverse(self, x, maxIter=100):
+        x = self.attention_layer.inverse(x, maxIter=maxIter)
         x = self.squeeze_layer.inverse(x)
         return x
     def inspect_lip(self, x, eps=0.00001):
