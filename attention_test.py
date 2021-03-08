@@ -181,7 +181,7 @@ def main():
     try_make_dir(img_dir)
 
     output = model(batch)
-    inverse_input = model.inverse(output)
+    inverse_input = model.inverse(output, maxIter=10000)
     if args.show_image:
         torchvision.utils.save_image(batch.cpu(),
                                      os.path.join(img_dir, "data.jpg"),
