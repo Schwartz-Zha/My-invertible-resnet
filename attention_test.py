@@ -23,17 +23,19 @@ class Attention_Test(torch.nn.Module):
         x = self.squeeze_layer.inverse(x)
         return x
     def inspect_lip(self, x, eps=0.00001):
-        x = self.squeeze_layer(x)
-        dx = x * eps
-        y1 = self.attention_layer.forward(x)[0]
-        y2 = self.attention_layer.forward(x + dx)[0]
-        lip = torch.dist(y2, y1) / torch.dist((x + dx), x)
-        return lip
+        with torch.no_grad():
+            x = self.squeeze_layer(x)
+            dx = x * eps
+            y1 = self.attention_layer.forward(x)[0]
+            y2 = self.attention_layer.forward(x + dx)[0]
+            lip = torch.dist(y2, y1) / torch.dist((x + dx), x)
+            return lip
 
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--epochs', type=int, default=20)
 parser.add_argument('--save_dir', type=str, default='results/invattention_test')
+parser.add_argument('--show_image', type=bool, default=True)
 
 def get_hms(seconds):
     m, s = divmod(seconds, 60)
@@ -124,12 +126,13 @@ def main():
 
     output = model(batch)
     inverse_input = model.inverse(output)
-    torchvision.utils.save_image(batch.cpu(),
-                                 os.path.join(img_dir, "data.jpg"),
-                                 8, normalize=True)
-    torchvision.utils.save_image(inverse_input.cpu(),
-                                 os.path.join(img_dir, "recon.jpg"),
-                                 8, normalize=True)
+    if args.show_image:
+        torchvision.utils.save_image(batch.cpu(),
+                                     os.path.join(img_dir, "data.jpg"),
+                                     8, normalize=True)
+        torchvision.utils.save_image(inverse_input.cpu(),
+                                     os.path.join(img_dir, "recon.jpg"),
+                                     8, normalize=True)
 
     print("lipschitz constant of atttention: " + str(model.inspect_lip(batch)))
 
