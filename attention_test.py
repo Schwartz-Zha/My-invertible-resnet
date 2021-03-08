@@ -90,7 +90,7 @@ def main():
             if use_cuda:
                 inputs = inputs.cuda()
             inputs = Variable(inputs, requires_grad=True)
-            output = model(inputs)[0]
+            output = model.forward(inputs)[0]
             loss = criterion(output, target)
             loss.backward()
             optim.step()
