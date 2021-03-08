@@ -69,7 +69,6 @@ def main():
     model = Attention_Test()
     if use_cuda:
         model.cuda()
-        model = torch.nn.DataParallel(model, range(torch.cuda.device_count()))
 
     target = torch.randn([32, 12, 16, 16])
     target = Variable(target)
