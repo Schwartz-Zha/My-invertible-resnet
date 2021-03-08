@@ -106,8 +106,9 @@ def main():
         model = Attention_Test()
     else:
         model = Conv_Test()
+
     if use_cuda:
-        model.cuda()
+        model = model.cuda()
 
     target = torch.randn([64, 12, 16, 16])
     target = Variable(target)
