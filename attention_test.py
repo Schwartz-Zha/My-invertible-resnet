@@ -35,8 +35,7 @@ class Conv_Test(torch.nn.Module):
     def __init__(self):
         super(Conv_Test, self).__init__()
         self.squeeze_layer = squeeze(2)
-        self.conv_layer = spectral_norm_fc(torch.nn.Conv2d(in_channels=12, out_channels=12, kernel_size=1),
-                                           coeff=.9, n_power_iterations=5)
+        self.conv_layer = self._spec_norm_wrapper(torch.nn.Conv2d(in_channels=12, out_channels=12, kernel_size=1))
     def forward(self, x):
         x = self.squeeze_layer.forward(x)
         Fx =  self.conv_layer.forward(x)
@@ -55,6 +54,8 @@ class Conv_Test(torch.nn.Module):
         y2 = self.attention_layer.res_branch.forward(x + dx)
         lip = torch.dist(y2, y1) / torch.dist((x + dx), x)
         return lip
+    def _spec_norm_wrapper(self, layer):
+        return spectral_norm_fc(layer, .9, 5)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--epochs', type=int, default=20)
