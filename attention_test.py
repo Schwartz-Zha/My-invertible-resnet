@@ -22,6 +22,13 @@ class Attention_Test(torch.nn.Module):
         x = self.attention_layer.inverse(x)
         x = self.squeeze_layer.inverse(x)
         return x
+    def inspect_lip(self, x, eps=0.00001):
+        x = self.squeeze_layer(x)
+        dx = x * eps
+        y1 = self.attention_layer.forward(x)
+        y2 = self.attention_layer.forward(x + dx)
+        lip = torch.dist(y2, y1) / torch.dist((x + dx), x)
+        return lip
 
 
 parser = argparse.ArgumentParser()
@@ -123,6 +130,8 @@ def main():
     torchvision.utils.save_image(inverse_input.cpu(),
                                  os.path.join(img_dir, "recon.jpg"),
                                  8, normalize=True)
+
+    print("lipschitz constant of atttention: " + str(model.inspect_lip(batch)))
 
 
 
