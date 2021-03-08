@@ -25,8 +25,8 @@ class Attention_Test(torch.nn.Module):
     def inspect_lip(self, x, eps=0.00001):
         x = self.squeeze_layer(x)
         dx = x * eps
-        y1 = self.attention_layer.forward(x)[0]
-        y2 = self.attention_layer.forward(x + dx)[0]
+        y1 = self.attention_layer.res_branch.forward(x)
+        y2 = self.attention_layer.res_branch.forward(x + dx)
         lip = torch.dist(y2, y1) / torch.dist((x + dx), x)
         return lip
 
