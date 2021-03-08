@@ -38,6 +38,7 @@ class Conv_Test(torch.nn.Module):
         self.conv_layer = self._spec_norm_wrapper(torch.nn.Conv2d(in_channels=12, out_channels=12, kernel_size=1))
         if use_cuda:
             self.conv_layer = self.conv_layer.cuda()
+            self.conv_layer.weight = self.conv_layer.weight.cuda()
     def forward(self, x):
         x = self.squeeze_layer.forward(x)
         Fx =  self.conv_layer.forward(x)
@@ -52,8 +53,8 @@ class Conv_Test(torch.nn.Module):
     def inspect_lip(self, x, eps=0.00001):
         x = self.squeeze_layer(x)
         dx = x * eps
-        y1 = self.attention_layer.res_branch.forward(x)
-        y2 = self.attention_layer.res_branch.forward(x + dx)
+        y1 = self.conv_layer(x)
+        y2 = self.conv_layer(x + dx)
         lip = torch.dist(y2, y1) / torch.dist((x + dx), x)
         return lip
     def _spec_norm_wrapper(self, layer):
