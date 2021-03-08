@@ -109,7 +109,7 @@ def main():
     if args.model == 'attention':
         model = Attention_Test()
     else:
-        model = Conv_Test()
+        model = Conv_Test(use_cuda)
 
     if use_cuda:
         model = model.cuda()
