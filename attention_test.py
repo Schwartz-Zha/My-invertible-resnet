@@ -17,9 +17,11 @@ class Attention_Test(torch.nn.Module):
     def forward(self, x):
         x = self.squeeze_layer.forward(x)
         x = self.attention_layer.forward(x)
+        return x
     def inverse(self, x):
         x = self.attention_layer.inverse(x)
         x = self.squeeze_layer.inverse(x)
+        return x
 
 
 parser = argparse.ArgumentParser()
