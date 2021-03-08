@@ -167,6 +167,3 @@ class InvAttention_dot2(nn.Module):
                 x = y - summand
             return x
 
-if __name__ == '__main__':
-    demo_input = torch.randn([32, 12, 16, 16])
-    invattention_concat = InvAttention_concat(12, k=4)
