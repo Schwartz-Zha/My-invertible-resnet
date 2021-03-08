@@ -8,6 +8,7 @@ import time
 from torch.autograd import Variable
 import numpy as np
 import os
+from spectral_norm_fc import spectral_norm_fc
 
 class Attention_Test(torch.nn.Module):
     def __init__(self):
@@ -30,11 +31,35 @@ class Attention_Test(torch.nn.Module):
         lip = torch.dist(y2, y1) / torch.dist((x + dx), x)
         return lip
 
+class Conv_Test(torch.nn.Module):
+    def __init__(self):
+        super(Conv_Test, self).__init__()
+        self.squeeze_layer = squeeze(2)
+        self.conv_layer = spectral_norm_fc(torch.nn.Conv2d(in_channels=12, out_channels=12, kernel_size=1),
+                                           coeff=.9, n_power_iterations=5)
+    def forward(self, x):
+        x = self.squeeze_layer.forward(x)
+        x = x + self.conv_layer.forward(x)
+        return x
+    def inverse(self, y, maxIter=100):
+        x = y
+        for i in range(maxIter):
+            x = y - self.conv_layer.forward(x)
+        x = self.squeeze_layer.inverse(x)
+        return x
+    def inspect_lip(self, x, eps=0.00001):
+        x = self.squeeze_layer(x)
+        dx = x * eps
+        y1 = self.attention_layer.res_branch.forward(x)
+        y2 = self.attention_layer.res_branch.forward(x + dx)
+        lip = torch.dist(y2, y1) / torch.dist((x + dx), x)
+        return lip
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--epochs', type=int, default=20)
 parser.add_argument('--save_dir', type=str, default='results/invattention_test')
 parser.add_argument('--show_image', type=bool, default=True)
+parser.add_argument('--model', type=str, default='attention')
 
 def get_hms(seconds):
     m, s = divmod(seconds, 60)
@@ -77,8 +102,10 @@ def main():
     testloader = torch.utils.data.DataLoader(test_subset, batch_size=64,
                                              shuffle=False, num_workers=2,drop_last=True,
                                              worker_init_fn=np.random.seed(1234))
-
-    model = Attention_Test()
+    if args.model == 'attention':
+        model = Attention_Test()
+    else:
+        model = Conv_Test()
     if use_cuda:
         model.cuda()
 
