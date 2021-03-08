@@ -23,13 +23,12 @@ class Attention_Test(torch.nn.Module):
         x = self.squeeze_layer.inverse(x)
         return x
     def inspect_lip(self, x, eps=0.00001):
-        with torch.no_grad():
-            x = self.squeeze_layer(x)
-            dx = x * eps
-            y1 = self.attention_layer.forward(x)[0]
-            y2 = self.attention_layer.forward(x + dx)[0]
-            lip = torch.dist(y2, y1) / torch.dist((x + dx), x)
-            return lip
+        x = self.squeeze_layer(x)
+        dx = x * eps
+        y1 = self.attention_layer.forward(x)[0]
+        y2 = self.attention_layer.forward(x + dx)[0]
+        lip = torch.dist(y2, y1) / torch.dist((x + dx), x)
+        return lip
 
 
 parser = argparse.ArgumentParser()
