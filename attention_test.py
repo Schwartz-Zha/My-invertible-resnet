@@ -107,6 +107,8 @@ def main():
     for batch_idx, (inputs, targets) in enumerate(testloader):
         batch = inputs
         batch = Variable(batch, requires_grad=True)
+        if use_cuda:
+            batch = batch.cuda()
         break
 
     model = model.eval()
