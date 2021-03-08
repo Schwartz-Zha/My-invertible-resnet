@@ -79,7 +79,7 @@ def main():
 
     criterion = torch.nn.MSELoss()
 
-    optim = torch.optiom.Adam(model.parameters(), lr=0.003, weight_decay=0.0)
+    optim = torch.optim.Adam(model.parameters(), lr=0.003, weight_decay=0.0)
 
     elapsed_time = 0.
     for epoch in range(1, args.epochs + 1):
