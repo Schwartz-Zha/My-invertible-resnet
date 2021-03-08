@@ -55,7 +55,7 @@ class Conv_Test(torch.nn.Module):
         lip = torch.dist(y2, y1) / torch.dist((x + dx), x)
         return lip
     def _spec_norm_wrapper(self, layer):
-        return spectral_norm_fc(layer, .9, 5)
+        return spectral_norm_fc(layer, coeff=.9, n_power_iterations=5)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--epochs', type=int, default=20)
