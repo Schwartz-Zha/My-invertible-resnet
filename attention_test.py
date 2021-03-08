@@ -2,7 +2,7 @@ import torch
 import torchvision
 from torchvision import transforms
 from models.model_utils import squeeze
-from models.inv_attention import InvAttention_dot2
+from models.inv_attention import InvAttention_dot2, InvAttention_dot3
 import argparse
 import time
 from torch.autograd import Variable
@@ -30,6 +30,28 @@ class Attention_Test(torch.nn.Module):
         y2 = self.attention_layer.res_branch.forward(x + dx)
         lip = torch.dist(y2, y1) / torch.dist((x + dx), x)
         return lip
+
+class Attention_Test3(torch.nn.Module):
+    def __init__(self):
+        super(Attention_Test3, self).__init__()
+        self.squeeze_layer = squeeze(2)
+        self.attention_layer = InvAttention_dot3(12)
+    def forward(self, x):
+        x = self.squeeze_layer.forward(x)
+        x = self.attention_layer.forward(x)[0]
+        return x
+    def inverse(self, x):
+        x = self.attention_layer.inverse(x)
+        x = self.squeeze_layer.inverse(x)
+        return x
+    def inspect_lip(self, x, eps=0.00001):
+        x = self.squeeze_layer(x)
+        dx = x * eps
+        y1 = self.attention_layer.res_branch.forward(x)
+        y2 = self.attention_layer.res_branch.forward(x + dx)
+        lip = torch.dist(y2, y1) / torch.dist((x + dx), x)
+        return lip
+
 
 class Conv_Test(torch.nn.Module):
     def __init__(self, use_cuda):
@@ -64,7 +86,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--epochs', type=int, default=20)
 parser.add_argument('--save_dir', type=str, default='results/invattention_test')
 parser.add_argument('--show_image', type=bool, default=True)
-parser.add_argument('--model', type=str, default='attention')
+parser.add_argument('--model', type=str, default='attention_dot3')
 
 def get_hms(seconds):
     m, s = divmod(seconds, 60)
@@ -107,8 +129,10 @@ def main():
     testloader = torch.utils.data.DataLoader(test_subset, batch_size=64,
                                              shuffle=False, num_workers=2,drop_last=True,
                                              worker_init_fn=np.random.seed(1234))
-    if args.model == 'attention':
+    if args.model == 'attention_dot2':
         model = Attention_Test()
+    elif args.model == 'attention_dot3':
+        model = Attention_Test3()
     else:
         model = Conv_Test(use_cuda)
 
