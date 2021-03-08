@@ -39,7 +39,8 @@ class Conv_Test(torch.nn.Module):
                                            coeff=.9, n_power_iterations=5)
     def forward(self, x):
         x = self.squeeze_layer.forward(x)
-        x = x + self.conv_layer.forward(x)
+        Fx =  self.conv_layer.forward(x)
+        x = x + Fx
         return x
     def inverse(self, y, maxIter=100):
         x = y
