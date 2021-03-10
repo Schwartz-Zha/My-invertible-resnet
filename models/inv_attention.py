@@ -140,6 +140,8 @@ class Attention_dot2(nn.Module):
         energy = self.nonlin(energy)
         with torch.no_grad():
             energy_sum = torch.sum(energy, dim=(1,2))
+            print(energy_sum.size())
+            exit()
         energy = energy / (2.0 * energy_sum)
         proj_value = self.value_conv(x).view(B, -1, H * W)  # [B, C, HW]
         out = torch.bmm(proj_value, energy).view(B, C, H, W)
