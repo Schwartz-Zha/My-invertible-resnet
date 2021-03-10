@@ -123,7 +123,7 @@ class Attention_dot2(nn.Module):
     '''
     Dot product, inv
     '''
-    def __init__(self, input_channel_num, k=1):
+    def __init__(self, input_channel_num, k=4):
         super(Attention_dot2, self).__init__()
         self.c_in = input_channel_num
         self.query_conv = nn.Conv2d(in_channels=self.c_in, out_channels=self.c_in // k, kernel_size=1)
@@ -139,7 +139,7 @@ class Attention_dot2(nn.Module):
         energy = torch.bmm(proj_query, proj_key)  # Batch matrix multiplication, [B, HW, HW]
         energy = self.nonlin(energy)
         with torch.no_grad():
-            energy_sum = torch.sum(energy, dim=(1,2), keepdim=True)
+            energy_sum = torch.sum(energy, keepdim=True)
         energy = energy / (2.0 * energy_sum)
         proj_value = self.value_conv(x).view(B, -1, H * W)  # [B, C, HW]
         out = torch.bmm(proj_value, energy).view(B, C, H, W)
