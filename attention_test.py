@@ -10,9 +10,9 @@ import numpy as np
 import os
 from spectral_norm_fc import spectral_norm_fc
 
-class Attention_Test(torch.nn.Module):
+class Attention_Test2(torch.nn.Module):
     def __init__(self):
-        super(Attention_Test, self).__init__()
+        super(Attention_Test2, self).__init__()
         self.squeeze_layer = squeeze(2)
         self.attention_layer = InvAttention_dot2(12)
     def forward(self, x):
@@ -130,7 +130,7 @@ def main():
                                              shuffle=False, num_workers=2,drop_last=True,
                                              worker_init_fn=np.random.seed(1234))
     if args.model == 'attention_dot2':
-        model = Attention_Test()
+        model = Attention_Test2()
     elif args.model == 'attention_dot3':
         model = Attention_Test3()
     else:
