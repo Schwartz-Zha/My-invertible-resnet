@@ -138,7 +138,7 @@ class Attention_dot2(nn.Module):
         proj_key = self.key_conv(x).view(B, -1, H * W)  # [B, C//8, HW]
         energy = torch.bmm(proj_query, proj_key)  # Batch matrix multiplication, [B, HW, HW]
         energy = self.nonlin(energy)
-        energy = energy / torch.sum(energy, dim=(1,2), keepdim=True)
+        energy = energy / (1.1 * torch.sum(energy, dim=(1,2), keepdim=True))
         proj_value = self.value_conv(x).view(B, -1, H * W)  # [B, C, HW]
         out = torch.bmm(proj_value, energy).view(B, C, H, W)
         out = torch.clamp(self.gamma, min=-1.0, max=1.0) * out + x
