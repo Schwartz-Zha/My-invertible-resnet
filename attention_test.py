@@ -164,6 +164,7 @@ def main():
             optim.step()
 
         epoch_time = time.time() - start_time
+        elapsed_time += epoch_time
         print('| Elapsed time : %d:%02d:%02d' % (get_hms(elapsed_time)))
 
     # Test if the model is invertible
