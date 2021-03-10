@@ -123,7 +123,7 @@ class Attention_dot2(nn.Module):
     '''
     Dot product, inv
     '''
-    def __init__(self, input_channel_num, k=4):
+    def __init__(self, input_channel_num, k=1):
         super(Attention_dot2, self).__init__()
         self.c_in = input_channel_num
         self.query_conv = nn.Conv2d(in_channels=self.c_in, out_channels=self.c_in // k, kernel_size=1)
