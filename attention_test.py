@@ -18,7 +18,7 @@ class Attention_TestConcat(torch.nn.Module):
         self.attention_layer = InvAttention_concat(12)
     def forward(self, x):
         x = self.squeeze_layer.forward(x)
-        x = self.attention_layer.forward(x)
+        x = self.attention_layer.forward(x)[0]
         return x
     def inverse(self, x, maxIter=100):
         x = self.attention_layer.inverse(x, maxIter=maxIter)
