@@ -29,7 +29,7 @@ class Attention_concat(nn.Module):
         proj_key = proj_key.repeat(1, 1, H * W, 1)
         concat_feature = torch.cat([proj_query, proj_key], dim=1)  # [B, 2*inter_c, HW, HW]
         energy = self.concat_conv(concat_feature).squeeze()  # [B,  HW, HW]
-        energy = energy / (1.5 * torch.sum(energy, dim=(1,2), keepdim=True))
+        energy = energy / (2.5 * torch.sum(energy, dim=(1,2), keepdim=True))
         proj_value = self.value_conv(x).view(B, -1, H * W)
         out = torch.bmm(proj_value, energy).view(B, -1, H, W)
         out = self.nonlin_2(self.gamma) * out + x
@@ -142,7 +142,7 @@ class Attention_dot2(nn.Module):
         energy = self.nonlin(energy)
         with torch.no_grad():
             energy_sum = torch.sum(energy,dim=(1,2), keepdim=True)
-        energy = energy / (1.5 * energy_sum) #hooray
+        energy = energy / (2.5 * energy_sum) #hooray
         proj_value = self.value_conv(x).view(B, -1, H * W)  # [B, C, HW]
         out = torch.bmm(proj_value, energy).view(B, C, H, W)
         out = torch.clamp(self.gamma, min=-1.0, max=1.0) * out + x
