@@ -18,6 +18,8 @@ class Attention_concat(nn.Module):
         self.concat_conv = nn.Conv2d(in_channels=self.inter_c * 2, out_channels=1, kernel_size=1, bias=False)
         self.value_conv = nn.Conv2d(in_channels=in_c, out_channels=in_c, kernel_size=1)
         self.gamma = Parameter(torch.zeros(1))
+        self.nonlin_1 = nn.ELU()
+        self.nonlin_2 = nn.Sigmoid()
 
     def forward(self, x):
         B, C, H, W = x.size()
@@ -27,10 +29,10 @@ class Attention_concat(nn.Module):
         proj_key = proj_key.repeat(1, 1, H * W, 1)
         concat_feature = torch.cat([proj_query, proj_key], dim=1)  # [B, 2*inter_c, HW, HW]
         energy = self.concat_conv(concat_feature).squeeze()  # [B,  HW, HW]
-        attention = energy / float(H * W)
+        energy = energy / (1.5 * torch.sum(energy, dim=(1,2), keepdim=True))
         proj_value = self.value_conv(x).view(B, -1, H * W)
-        out = torch.bmm(proj_value, attention).view(B, -1, H, W)
-        out = self.gamma * out + x
+        out = torch.bmm(proj_value, energy).view(B, -1, H, W)
+        out = self.nonlin_2(self.gamma) * out + x
         return out
 
 

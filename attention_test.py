@@ -2,13 +2,35 @@ import torch
 import torchvision
 from torchvision import transforms
 from models.model_utils import squeeze
-from models.inv_attention import InvAttention_dot2, InvAttention_dot3
+from models.inv_attention import InvAttention_dot2, InvAttention_dot3, InvAttention_concat
 import argparse
 import time
 from torch.autograd import Variable
 import numpy as np
 import os
 from spectral_norm_fc import spectral_norm_fc
+
+
+class Attention_TestConcat(torch.nn.Module):
+    def __init__(self):
+        super(Attention_TestConcat, self).__init__()
+        self.squeeze_layer = squeeze(2)
+        self.attention_layer = InvAttention_concat(12)
+    def forwar(self, x):
+        x = self.squeeze_layer.forward(x)
+        x = self.attention_layer.forward(x)
+        return x
+    def inverse(self, x, maxIter=100):
+        x = self.attention_layer.inverse(x, maxIter=maxIter)
+        x = self.squeeze_layer.inverse(x)
+        return x
+    def inspect_lip(self, x, eps = 0.00001):
+        x = self.squeeze_layer(x)
+        dx = x * eps
+        y1 = self.attention_layer.res_branch.forward(x)
+        y2 = self.attention_layer.res_branch.forward(x + dx)
+        lip = torch.dist(y2, y1) / torch.dist((x + dx), x)
+        return lip
 
 class Attention_Test2(torch.nn.Module):
     def __init__(self):
@@ -133,6 +155,8 @@ def main():
         model = Attention_Test2()
     elif args.model == 'attention_dot3':
         model = Attention_Test3()
+    elif args.model == 'attention_concat':
+        model = Attention_TestConcat()
     else:
         model = Conv_Test(use_cuda)
 
