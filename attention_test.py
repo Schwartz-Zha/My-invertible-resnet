@@ -16,7 +16,7 @@ class Attention_TestConcat(torch.nn.Module):
         super(Attention_TestConcat, self).__init__()
         self.squeeze_layer = squeeze(2)
         self.attention_layer = InvAttention_concat(12)
-    def forwar(self, x):
+    def forward(self, x):
         x = self.squeeze_layer.forward(x)
         x = self.attention_layer.forward(x)
         return x
