@@ -182,7 +182,7 @@ class scale_block(nn.Module):
                                       input_nonlin, coeff, actnorm, n_power_iter, nonlin)
         if do_attention:
             #self.attention = InvAttention_concat(conv_shape[0], k=4, numTraceSamples=n_samples, numSeriesTerms=n_terms)
-            self.attention = InvAttention_dot3(conv_shape[0], k=4, numTraceSamples=n_samples, numSeriesTerms=n_terms)
+            self.attention = InvAttention_dot2(conv_shape[0], k=4, numTraceSamples=n_samples, numSeriesTerms=n_terms)
         else:
             self.attention = None
 
