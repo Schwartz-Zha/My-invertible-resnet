@@ -33,7 +33,8 @@ class Attention_concat(nn.Module):
         energy = energy / (1.5 * torch.sum(energy, dim=(1,2), keepdim=True))
         proj_value = self.value_conv(x).view(B, -1, H * W)
         out = torch.bmm(proj_value, energy).view(B, -1, H, W)
-        out = self.nonlin_2(self.gamma) * out + x
+        self.gamma = self.nonlin_2(self.gamma)
+        out = self.gamma * out + x
         return out
 
 
