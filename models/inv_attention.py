@@ -17,7 +17,7 @@ class Attention_concat(nn.Module):
         self.key_conv = nn.Conv2d(in_channels=in_c, out_channels=self.inter_c, kernel_size=1)
         self.concat_conv = nn.Conv2d(in_channels=self.inter_c * 2, out_channels=1, kernel_size=1, bias=False)
         self.value_conv = spectral_norm_fc(nn.Conv2d(in_channels=in_c, out_channels=in_c, kernel_size=1),
-                                           coeff=.9, n_power_iterations=5)
+                                           coeff=.7, n_power_iterations=5)
         self.gamma = Parameter(torch.zeros(1))
         self.nonlin_1 = nn.ELU()
         self.nonlin_2 = nn.Tanh()
@@ -133,7 +133,7 @@ class Attention_dot2(nn.Module):
         self.query_conv = nn.Conv2d(in_channels=self.c_in, out_channels=self.c_in // k, kernel_size=1)
         self.key_conv = nn.Conv2d(in_channels=self.c_in, out_channels=self.c_in // k, kernel_size=1)
         self.value_conv = spectral_norm_fc(nn.Conv2d(in_channels=self.c_in, out_channels=self.c_in, kernel_size=1),
-                                           coeff=.9, n_power_iterations=5)
+                                           coeff=.7, n_power_iterations=5)
         self.nonlin = nn.ELU()
         self.gamma = Parameter(torch.zeros(1))
     def forward(self, x):

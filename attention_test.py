@@ -216,7 +216,7 @@ def main():
                                      8, normalize=True)
 
     print("lipschitz constant of atttention: " + str(model.inspect_lip(batch)))
-
+    print('reconstruction loss: ' + str(torch.dist(batch, inverse_input)))
 
 
 if __name__ == '__main__':
