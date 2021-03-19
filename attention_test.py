@@ -164,7 +164,7 @@ def main():
     if use_cuda:
         model = model.cuda()
 
-    target = torch.randn([64, 12, 16, 16])
+    target = torch.randn([args.batch, 12, 16, 16])
     target = Variable(target)
     if use_cuda:
         target = target.cuda()
