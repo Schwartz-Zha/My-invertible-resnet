@@ -138,6 +138,11 @@ def main():
     transform_train = transforms.Compose(train_chain + dens_est_chain)
     transform_test = transforms.Compose(test_chain + dens_est_chain)
 
+    inverse_den_est_chain = [
+        lambda x: x + 0.5,
+        lambda x: x * 256.
+    ]
+    inverse_den_est = transforms.Compose(inverse_den_est_chain)
 
     trainset = torchvision.datasets.CIFAR10(
         root='./data', train=True, download=True, transform=transform_train)
@@ -209,13 +214,19 @@ def main():
 
     output = model(batch)
     inverse_input = model.inverse(output, maxIter=args.inverse)
+
+
+    batch = inverse_den_est(batch)
+    inverse_input = inverse_den_est(inverse_input)
+
+
     if args.show_image:
         torchvision.utils.save_image(batch.cpu(),
                                      os.path.join(img_dir, "data.jpg"),
-                                     8, normalize=True)
+                                     8, normalize=False)
         torchvision.utils.save_image(inverse_input.cpu(),
                                      os.path.join(img_dir, "recon.jpg"),
-                                     8, normalize=True)
+                                     8, normalize=False)
 
     print("lipschitz constant of atttention: " + str(model.inspect_lip(batch)))
     print('reconstruction loss: ' + str(torch.dist(batch, inverse_input)))
