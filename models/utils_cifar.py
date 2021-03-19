@@ -169,7 +169,7 @@ def train(args, model, optimizer, epoch, trainloader, trainset, viz, use_cuda, t
                         line_plot(viz, "min prior scale", cur_iter, prior_scales_min.item())
 
 
-def test(best_result, args, model, epoch, testloader, viz, use_cuda, test_log):
+def test(best_result, args, model, epoch, testloader, viz, use_cuda, test_log, inverse_transform):
     model.eval()
     objective = 0.
     total = 0
@@ -197,20 +197,26 @@ def test(best_result, args, model, epoch, testloader, viz, use_cuda, test_log):
                 samples = model.module.sample(10,100) if use_cuda else model.sample(10,100)
             im_dir = os.path.join(args.save_dir, 'ims')
             try_make_dir(im_dir)
+
+            # inverse transform
+            samples = inverse_transform(samples)
+            inputs = inverse_transform(inputs)
+            x_re = inverse_transform(x_re)
+
             if not args.use_label:
                 torchvision.utils.save_image(samples.cpu(),
                                             os.path.join(im_dir, "samples_{}.jpg".format(epoch)),
-                                            int(bs**.5), normalize=True)
+                                            int(bs**.5), normalize=False)
             else:
                 torchvision.utils.save_image(samples.cpu(),
                                              os.path.join(im_dir, "samples_{}.jpg".format(epoch)),
-                                             int(100 ** .5), normalize=True)
+                                             int(100 ** .5), normalize=False)
             torchvision.utils.save_image(inputs.cpu(),
                                          os.path.join(im_dir, "data_{}.jpg".format(epoch)),
-                                         int(bs ** .5), normalize=True)
+                                         int(bs ** .5), normalize=False)
             torchvision.utils.save_image(x_re.cpu(),
                                          os.path.join(im_dir, "recons_{}.jpg".format(epoch)),
-                                         int(bs ** .5), normalize=True)
+                                         int(bs ** .5), normalize=False)
             if viz is not None:
                 images_plot(viz, "data", out_im(inputs).cpu())
                 images_plot(viz, "recons", out_im(x_re).cpu())

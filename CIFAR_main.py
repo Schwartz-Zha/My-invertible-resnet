@@ -165,6 +165,12 @@ def main():
         lambda x: x / 256.,
         lambda x: x - 0.5
     ]
+    inverse_den_est_chain = [
+        lambda x: x + 0.5,
+        lambda x: x * 256.
+    ]
+    inverse_den_est = transforms.Compose(inverse_den_est_chain)
+
     test_chain = [transforms.ToTensor()]
 
     if args.dataset == 'cifar10':
@@ -314,7 +320,7 @@ def main():
         else:
             model.set_num_terms(args.numSeriesTerms)
         model = torch.nn.DataParallel(model.module)
-        test(best_objective, args, model, start_epoch, testloader, viz, use_cuda, test_log)
+        test(best_objective, args, model, start_epoch, testloader, viz, use_cuda, test_log, inverse_den_est)
         return
 
     print('|  Train Epochs: ' + str(args.epochs))
