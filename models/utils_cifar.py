@@ -130,7 +130,7 @@ def train(args, model, optimizer, epoch, trainloader, trainset, viz, use_cuda, t
                 line_plot(viz, "logp(z)", cur_iter, mean_logpz)
                 line_plot(viz, "log|df/dz|", cur_iter, mean_trace)
             # file logging
-            log_dict = {"iter": cur_iter, "loss": loss.item(), "logpz": mean_logpz, "logdet": mean_trace, "epoch": epoch}
+            log_dict = {"epoch": epoch, "batch": batch_idx,"iter": cur_iter, "loss": loss.item(), "logpz": mean_logpz, "logdet": mean_trace, "epoch": epoch}
             train_log.write("{}\n".format(json.dumps(log_dict)))
             train_log.flush()
 
