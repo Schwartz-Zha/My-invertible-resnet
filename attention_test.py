@@ -108,7 +108,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--epochs', type=int, default=20)
 parser.add_argument('--save_dir', type=str, default='results/invattention_test')
 parser.add_argument('--show_image', type=bool, default=True)
-parser.add_argument('--model', type=str, default='attention_dot3')
+parser.add_argument('--model', type=str, default='attention_concat')
 
 def get_hms(seconds):
     m, s = divmod(seconds, 60)
