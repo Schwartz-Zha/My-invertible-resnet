@@ -106,6 +106,7 @@ class Conv_Test(torch.nn.Module):
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--epochs', type=int, default=20)
+parser.add_argument('--batch', type=int, default=64)
 parser.add_argument('--save_dir', type=str, default='results/invattention_test')
 parser.add_argument('--show_image', type=bool, default=True)
 parser.add_argument('--model', type=str, default='attention_concat')
@@ -145,10 +146,10 @@ def main():
     train_subset = torch.utils.data.Subset(trainset, list(range(1000)))
     test_subset = torch.utils.data.Subset(testset, list(range(1000)))
 
-    trainloader = torch.utils.data.DataLoader(train_subset, batch_size=64,
+    trainloader = torch.utils.data.DataLoader(train_subset, batch_size=args.batch,
                                               shuffle=True, num_workers=2,drop_last=True,
                                               worker_init_fn=np.random.seed(1234))
-    testloader = torch.utils.data.DataLoader(test_subset, batch_size=64,
+    testloader = torch.utils.data.DataLoader(test_subset, batch_size=args.batch,
                                              shuffle=False, num_workers=2,drop_last=True,
                                              worker_init_fn=np.random.seed(1234))
     if args.model == 'attention_dot2':
