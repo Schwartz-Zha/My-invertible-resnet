@@ -110,6 +110,7 @@ parser.add_argument('--batch', type=int, default=64)
 parser.add_argument('--save_dir', type=str, default='results/invattention_test')
 parser.add_argument('--show_image', type=bool, default=True)
 parser.add_argument('--model', type=str, default='attention_concat')
+parser.add_argument('--inverse', type=int, default=100)
 
 def get_hms(seconds):
     m, s = divmod(seconds, 60)
@@ -207,7 +208,7 @@ def main():
     try_make_dir(img_dir)
 
     output = model(batch)
-    inverse_input = model.inverse(output, maxIter=100)
+    inverse_input = model.inverse(output, maxIter=args.inverse)
     if args.show_image:
         torchvision.utils.save_image(batch.cpu(),
                                      os.path.join(img_dir, "data.jpg"),
