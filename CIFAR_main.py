@@ -166,8 +166,7 @@ def main():
         lambda x: x - 0.5
     ]
     inverse_den_est_chain = [
-        lambda x: x + 0.5,
-        lambda x: x * 256.
+        lambda x: x + 0.5
     ]
     inverse_den_est = transforms.Compose(inverse_den_est_chain)
 
