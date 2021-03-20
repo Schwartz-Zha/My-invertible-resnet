@@ -199,21 +199,21 @@ def test(best_result, args, model, epoch, testloader, viz, use_cuda, test_log, i
             try_make_dir(im_dir)
 
             # inverse transform
-            samples = inverse_transform(samples)
-            inputs = inverse_transform(inputs)
-            x_re = inverse_transform(x_re)
+            # samples = inverse_transform(samples)
+            # inputs = inverse_transform(inputs)
+            # x_re = inverse_transform(x_re)
 
             if not args.use_label:
                 torchvision.utils.save_image(samples.cpu(),
                                             os.path.join(im_dir, "samples_{}.jpg".format(epoch)),
-                                            int(bs**.5), normalize=False)
+                                            int(bs**.5), normalize=True)
             else:
                 torchvision.utils.save_image(samples.cpu(),
                                              os.path.join(im_dir, "samples_{}.jpg".format(epoch)),
-                                             int(100 ** .5), normalize=False)
+                                             int(100 ** .5), normalize=True)
             torchvision.utils.save_image(inputs.cpu(),
                                          os.path.join(im_dir, "data_{}.jpg".format(epoch)),
-                                         int(bs ** .5), normalize=False)
+                                         int(bs ** .5), normalize=True)
             torchvision.utils.save_image(x_re.cpu(),
                                          os.path.join(im_dir, "recons_{}.jpg".format(epoch)),
                                          int(bs ** .5), normalize=False)

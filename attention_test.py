@@ -220,8 +220,8 @@ def main():
     print(output.size())
     print(inverse_input.size())
 
-    batch = inverse_den_est(batch)
-    inverse_input = inverse_den_est(inverse_input)
+    # batch = inverse_den_est(batch)
+    # inverse_input = inverse_den_est(inverse_input)
 
 
     if args.show_image:
