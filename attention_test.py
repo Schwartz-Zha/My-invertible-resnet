@@ -216,6 +216,9 @@ def main():
     output = model(batch)
     inverse_input = model.inverse(output, maxIter=args.inverse)
 
+    print(batch.size())
+    print(output.size())
+    print(inverse_input.size())
 
     batch = inverse_den_est(batch)
     inverse_input = inverse_den_est(inverse_input)
