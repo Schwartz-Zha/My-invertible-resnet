@@ -140,8 +140,7 @@ def main():
     transform_test = transforms.Compose(test_chain + dens_est_chain)
 
     inverse_den_est_chain = [
-        lambda x: x + 0.5,
-        lambda x: x * 256.
+        lambda x: x + 0.5
     ]
     inverse_den_est = transforms.Compose(inverse_den_est_chain)
 
@@ -216,13 +215,19 @@ def main():
     output = model(batch)
     inverse_input = model.inverse(output, maxIter=args.inverse)
 
+
+    torch.save(batch, os.path.join(img_dir, 'input_before.pt'))
+    torch.save(inverse_input, os.path.join(img_dir, 'inverse_input_before.pt'))
+
     print(batch.size())
     print(output.size())
     print(inverse_input.size())
 
     batch = inverse_den_est(batch)
     inverse_input = inverse_den_est(inverse_input)
-
+    
+    torch.save(batch, os.path.join(img_dir, 'input_after.pt'))
+    torch.save(inverse_input, os.path.join(img_dir, 'inverse_input_after.pt'))
 
     if args.show_image:
         torchvision.utils.save_image(batch.cpu(),
