@@ -12,10 +12,10 @@ from spectral_norm_fc import spectral_norm_fc
 
 
 class Attention_TestConcat(torch.nn.Module):
-    def __init__(self):
+    def __init__(self, convGamma=False):
         super(Attention_TestConcat, self).__init__()
         self.squeeze_layer = squeeze(2)
-        self.attention_layer = InvAttention_concat(12)
+        self.attention_layer = InvAttention_concat(12, convGamma=convGamma)
     def forward(self, x):
         x = self.squeeze_layer.forward(x)
         x = self.attention_layer.forward(x)[0]
@@ -33,10 +33,10 @@ class Attention_TestConcat(torch.nn.Module):
         return lip
 
 class Attention_Test2(torch.nn.Module):
-    def __init__(self):
+    def __init__(self, convGamma=False):
         super(Attention_Test2, self).__init__()
         self.squeeze_layer = squeeze(2)
-        self.attention_layer = InvAttention_dot2(12)
+        self.attention_layer = InvAttention_dot2(12, convGamma=convGamma)
     def forward(self, x):
         x = self.squeeze_layer.forward(x)
         x = self.attention_layer.forward(x)[0]
@@ -111,6 +111,7 @@ parser.add_argument('--save_dir', type=str, default='results/invattention_test')
 parser.add_argument('--show_image', type=bool, default=True)
 parser.add_argument('--model', type=str, default='attention_concat')
 parser.add_argument('--inverse', type=int, default=100)
+parser.add_argument('--convGamma', type=bool, default=False)
 
 def get_hms(seconds):
     m, s = divmod(seconds, 60)
@@ -159,11 +160,11 @@ def main():
                                              shuffle=False, num_workers=2,drop_last=True,
                                              worker_init_fn=np.random.seed(1234))
     if args.model == 'attention_dot2':
-        model = Attention_Test2()
+        model = Attention_Test2(convGamma=args.convGamma)
     elif args.model == 'attention_dot3':
         model = Attention_Test3()
     elif args.model == 'attention_concat':
-        model = Attention_TestConcat()
+        model = Attention_TestConcat(convGamma=args.convGamma)
     else:
         model = Conv_Test(use_cuda)
 
