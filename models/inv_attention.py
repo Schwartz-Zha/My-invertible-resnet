@@ -160,9 +160,9 @@ class Attention_dot2(nn.Module):
         return out
 
 class InvAttention_dot2(nn.Module):
-    def __init__(self, input_channel_num, k=4, numTraceSamples=1, numSeriesTerms=5):
+    def __init__(self, input_channel_num, k=4, numTraceSamples=1, numSeriesTerms=5, convGamma = False):
         super(InvAttention_dot2, self).__init__()
-        self.res_branch= Attention_dot2(input_channel_num, k=k)
+        self.res_branch= Attention_dot2(input_channel_num, k=k, convGamma=convGamma)
         self.numTraceSamples = numTraceSamples
         self.numSeriesTerms = numSeriesTerms
     def forward(self, x, ignore_logdet=False):
