@@ -2,7 +2,7 @@ import torch
 import torchvision
 from torchvision import transforms
 from models.model_utils import squeeze
-from models.inv_attention import InvAttention_dot2, InvAttention_dot3, InvAttention_concat
+from models.inv_attention import InvAttention_dot2, InvAttention_dot3, InvAttention_concat, InvAttention_dot2_super
 import argparse
 import time
 from torch.autograd import Variable
@@ -37,6 +37,27 @@ class Attention_Test2(torch.nn.Module):
         super(Attention_Test2, self).__init__()
         self.squeeze_layer = squeeze(2)
         self.attention_layer = InvAttention_dot2(12, convGamma=convGamma)
+    def forward(self, x):
+        x = self.squeeze_layer.forward(x)
+        x = self.attention_layer.forward(x)[0]
+        return x
+    def inverse(self, x, maxIter=100):
+        x = self.attention_layer.inverse(x, maxIter=maxIter)
+        x = self.squeeze_layer.inverse(x)
+        return x
+    def inspect_lip(self, x, eps=0.00001):
+        x = self.squeeze_layer(x)
+        dx = x * eps
+        y1 = self.attention_layer.res_branch.forward(x)
+        y2 = self.attention_layer.res_branch.forward(x + dx)
+        lip = torch.dist(y2, y1) / torch.dist((x + dx), x)
+        return lip
+
+class Attention_Test2_super(torch.nn.Module):
+    def __init__(self, convGamma=False):
+        super(Attention_Test2_super, self).__init__()
+        self.squeeze_layer = squeeze(2)
+        self.attention_layer = InvAttention_dot2_super(12, convGamma=convGamma)
     def forward(self, x):
         x = self.squeeze_layer.forward(x)
         x = self.attention_layer.forward(x)[0]
@@ -164,6 +185,8 @@ def main():
         model = Attention_Test3()
     elif args.model == 'attention_concat':
         model = Attention_TestConcat(convGamma=args.convGamma)
+    elif args.model == 'super':
+        model = Attention_Test2_super(convGamma=args.convGamma)
     else:
         model = Conv_Test(use_cuda)
 

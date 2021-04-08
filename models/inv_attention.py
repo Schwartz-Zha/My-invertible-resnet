@@ -183,6 +183,69 @@ class InvAttention_dot2(nn.Module):
             return x
 
 
+
+class Attention_dot2_super(nn.Module):
+    '''
+    Dot product, inv
+    '''
+    def __init__(self, input_channel_num, k=4, convGamma=False):
+        super(Attention_dot2_super, self).__init__()
+        self.c_in = input_channel_num
+        self.query_conv = nn.Conv2d(in_channels=self.c_in, out_channels=self.c_in // k, kernel_size=1)
+        self.key_conv = nn.Conv2d(in_channels=self.c_in, out_channels=self.c_in // k, kernel_size=1)
+        self.value_conv = spectral_norm_fc(nn.Conv2d(in_channels=self.c_in, out_channels=self.c_in, kernel_size=1),
+                                           coeff=.9, n_power_iterations=5)
+        self.nonlin = nn.ELU()
+        self.convGamma = convGamma
+        if convGamma:
+            self.gamma = spectral_norm_fc(nn.Conv2d(in_channels=self.c_in, out_channels=self.c_in, kernel_size=1),
+                                             coeff=.9, n_power_iterations=5)
+        else:
+            self.gamma = Parameter(torch.zeros(1))
+            self.nonlin_2 = nn.Tanh()
+
+    def forward(self, x):
+        B, C, H, W = x.size()
+        proj_query = self.query_conv(x).view(B, -1, H * W).permute(0, 2, 1)  # [B, HW, C//8]
+        proj_key = self.key_conv(x).view(B, -1, H * W)  # [B, C//8, HW]
+        energy = torch.bmm(proj_query, proj_key)  # Batch matrix multiplication, [B, HW, HW]
+        energy = self.nonlin(energy)
+        energy_sum = torch.sum(energy,dim=(1), keepdim=True)
+        energy = energy / (1.5 * energy_sum) #hooray
+        proj_value = self.value_conv(x).view(B, -1, H * W)  # [B, C, HW]
+        out = torch.bmm(proj_value, energy).view(B, C, H, W)
+        if self.convGamma:
+            out = self.gamma(out)
+        else:
+            out = self.nonlin_2(self.gamma) * out
+        return out
+
+class InvAttention_dot2_super(nn.Module):
+    def __init__(self, input_channel_num, k=4, numTraceSamples=1, numSeriesTerms=5, convGamma = False):
+        super(InvAttention_dot2_super, self).__init__()
+        self.res_branch= Attention_dot2_super(input_channel_num, k=k, convGamma=convGamma)
+        self.numTraceSamples = numTraceSamples
+        self.numSeriesTerms = numSeriesTerms
+    def forward(self, x, ignore_logdet=False):
+        Fx = self.res_branch(x)
+        if (self.numTraceSamples == 0 and self.numSeriesTerms == 0) or ignore_logdet:
+            trace = torch.tensor(0.)
+        else:
+            trace = power_series_matrix_logarithm_trace(Fx, x, self.numSeriesTerms, self.numTraceSamples)
+        x = x + Fx
+        return x, trace
+    def inverse(self, y, maxIter=100):
+        with torch.no_grad():
+            # inversion of ResNet-block (fixed-point iteration)
+            x = y
+            for iter_index in range(maxIter):
+                summand = self.res_branch(x)
+                x = y - summand
+            return x
+
+
+
+
 class Attention_dot3(nn.Module):
     '''
     Dot product, inv
