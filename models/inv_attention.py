@@ -28,7 +28,7 @@ class Attention_gaussian(nn.Module):
         proj_key = x.view(B, -1, H * W)  # [B, C//8, HW]
         energy = torch.bmm(proj_query, proj_key)  # Batch matrix multiplication, [B, HW, HW]
         energy = torch.exp(energy)
-        energy_sum = torch.sum(energy,dim=(1), keepdim=True)
+        energy_sum = torch.sum(energy,dim=(1, 2), keepdim=True)
         energy = energy / (1.5 * energy_sum) #hooray
         proj_value = self.value_conv(x).view(B, -1, H * W)  # [B, C, HW]
         out = torch.bmm(proj_value, energy).view(B, C, H, W)
@@ -90,7 +90,7 @@ class Attention_embedded_gaussian(nn.Module):
         proj_key = self.key_conv(x).view(B, -1, H * W)  # [B, C//8, HW]
         energy = torch.bmm(proj_query, proj_key)  # Batch matrix multiplication, [B, HW, HW]
         energy = torch.exp(energy)
-        energy_sum = torch.sum(energy,dim=(1), keepdim=True)
+        energy_sum = torch.sum(energy,dim=(1, 2), keepdim=True)
         energy = energy / (1.5 * energy_sum) #hooray
         proj_value = self.value_conv(x).view(B, -1, H * W)  # [B, C, HW]
         out = torch.bmm(proj_value, energy).view(B, C, H, W)
@@ -155,7 +155,7 @@ class Attention_dot(nn.Module):
         proj_key = self.key_conv(x).view(B, -1, H * W)  # [B, C//8, HW]
         energy = torch.bmm(proj_query, proj_key)  # Batch matrix multiplication, [B, HW, HW]
         energy = self.nonlin(energy)
-        energy_sum = torch.sum(energy,dim=(1), keepdim=True)
+        energy_sum = torch.sum(energy,dim=(1, 2), keepdim=True)
         energy = energy / (1.5 * energy_sum) #hooray
         proj_value = self.value_conv(x).view(B, -1, H * W)  # [B, C, HW]
         out = torch.bmm(proj_value, energy).view(B, C, H, W)
@@ -225,7 +225,7 @@ class Attention_concat(nn.Module):
         concat_feature = torch.cat([proj_query, proj_key], dim=1)  # [B, 2*inter_c, HW, HW]
         energy = self.concat_conv(concat_feature).squeeze()  # [B,  HW, HW]
         energy = self.nonlin_1(energy)
-        energy = energy / (1.5 * torch.sum(energy, dim=(1), keepdim=True))
+        energy = energy / (1.5 * torch.sum(energy, dim=(1, 2), keepdim=True))
         proj_value = self.value_conv(x).view(B, -1, H * W)
         out = torch.bmm(proj_value, energy).view(B, -1, H, W)
         if self.convGamma:
