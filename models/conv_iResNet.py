@@ -15,7 +15,7 @@ from .model_utils import MaxMinGroup
 from spectral_norm_conv_inplace import spectral_norm_conv
 from spectral_norm_fc import spectral_norm_fc
 from matrix_utils import power_series_matrix_logarithm_trace
-from .inv_attention import InvAttention_concat, InvAttention_dot, InvAttention_dot2, InvAttention_dot3
+from .inv_attention import InvAttention_concat, InvAttention_dot, InvAttention_gaussian, InvAttention_embedded_gaussian
 
 
 # class LogisticTransform(torch.distributions.Transform):
@@ -181,9 +181,14 @@ class scale_block(nn.Module):
         self.stack = self._make_stack(steps, n_terms, n_samples, conv_shape, int_dim,
                                       input_nonlin, coeff, actnorm, n_power_iter, nonlin)
         if do_attention:
-            #self.attention = InvAttention_concat(conv_shape[0], k=4, numTraceSamples=n_samples, numSeriesTerms=n_terms)
-            self.attention = InvAttention_dot2(conv_shape[0], k=4, numTraceSamples=n_samples, numSeriesTerms=n_terms, convGamma=False)
-
+            self.attention = InvAttention_concat(conv_shape[0], k=4, numTraceSamples=n_samples, numSeriesTerms=n_terms,
+                                                 convGamma=True)
+            # self.attention = InvAttention_gaussian(conv_shape[0], k=4, numTraceSamples=n_samples, numSeriesTerms=n_terms,
+            #                                      convGamma=True)
+            # self.attention = InvAttention_embedded_gaussian(conv_shape[0], k=4, numTraceSamples=n_samples, numSeriesTerms=n_terms,
+            #                                      convGamma=True)
+            # self.attention = InvAttention_dot(conv_shape[0], k=4, numTraceSamples=n_samples, numSeriesTerms=n_terms,
+            #                                      convGamma=True)
         else:
             self.attention = None
 
