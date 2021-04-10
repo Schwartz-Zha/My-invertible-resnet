@@ -2,7 +2,7 @@ import torch
 import torchvision
 from torchvision import transforms
 from models.model_utils import squeeze
-from models.inv_attention import InvAttention_dot2, InvAttention_concat, InvAttention_dot2_super
+from models.inv_attention import InvAttention_dot, InvAttention_concat, InvAttention_gaussian, InvAttention_embedded_gaussian
 import argparse
 import time
 from torch.autograd import Variable
@@ -32,11 +32,11 @@ class Attention_TestConcat(torch.nn.Module):
         lip = torch.dist(y2, y1) / torch.dist((x + dx), x)
         return lip
 
-class Attention_Test2(torch.nn.Module):
+class Attention_TestDot(torch.nn.Module):
     def __init__(self, convGamma=False):
-        super(Attention_Test2, self).__init__()
+        super(Attention_TestDot, self).__init__()
         self.squeeze_layer = squeeze(2)
-        self.attention_layer = InvAttention_dot2(12, convGamma=convGamma)
+        self.attention_layer = InvAttention_dot(12, convGamma=convGamma)
     def forward(self, x):
         x = self.squeeze_layer.forward(x)
         x = self.attention_layer.forward(x)[0]
@@ -53,11 +53,11 @@ class Attention_Test2(torch.nn.Module):
         lip = torch.dist(y2, y1) / torch.dist((x + dx), x)
         return lip
 
-class Attention_Test2_super(torch.nn.Module):
+class Attention_TestGaussian(torch.nn.Module):
     def __init__(self, convGamma=False):
-        super(Attention_Test2_super, self).__init__()
+        super(Attention_TestGaussian, self).__init__()
         self.squeeze_layer = squeeze(2)
-        self.attention_layer = InvAttention_dot2_super(12, convGamma=convGamma)
+        self.attention_layer = InvAttention_gaussian(12, convGamma=convGamma)
     def forward(self, x):
         x = self.squeeze_layer.forward(x)
         x = self.attention_layer.forward(x)[0]
@@ -74,11 +74,11 @@ class Attention_Test2_super(torch.nn.Module):
         lip = torch.dist(y2, y1) / torch.dist((x + dx), x)
         return lip
 
-class Attention_Test3(torch.nn.Module):
+class Attention_TestEmbeddedGaussian(torch.nn.Module):
     def __init__(self):
-        super(Attention_Test3, self).__init__()
+        super(Attention_TestEmbeddedGaussian, self).__init__()
         self.squeeze_layer = squeeze(2)
-        self.attention_layer = InvAttention_dot3(12)
+        self.attention_layer = InvAttention_embedded_gaussian(12)
     def forward(self, x):
         x = self.squeeze_layer.forward(x)
         x = self.attention_layer.forward(x)[0]
@@ -130,9 +130,9 @@ parser.add_argument('--epochs', type=int, default=20)
 parser.add_argument('--batch', type=int, default=64)
 parser.add_argument('--save_dir', type=str, default='results/invattention_test')
 parser.add_argument('--show_image', type=bool, default=True)
-parser.add_argument('--model', type=str, default='attention_concat')
+parser.add_argument('--model', type=str, default='concat')
 parser.add_argument('--inverse', type=int, default=100)
-parser.add_argument('--convGamma', type=bool, default=False)
+parser.add_argument('--convGamma', type=bool, default=True)
 
 def get_hms(seconds):
     m, s = divmod(seconds, 60)
@@ -179,14 +179,14 @@ def main():
     testloader = torch.utils.data.DataLoader(test_subset, batch_size=args.batch,
                                              shuffle=False, num_workers=2,drop_last=True,
                                              worker_init_fn=np.random.seed(1234))
-    if args.model == 'attention_dot2':
-        model = Attention_Test2(convGamma=args.convGamma)
-    elif args.model == 'attention_dot3':
-        model = Attention_Test3()
-    elif args.model == 'attention_concat':
+    if args.model == 'dot':
+        model = Attention_TestDot(convGamma=args.convGamma)
+    elif args.model == 'gaussian':
+        model = Attention_TestGaussian()
+    elif args.model == 'concat':
         model = Attention_TestConcat(convGamma=args.convGamma)
-    elif args.model == 'super':
-        model = Attention_Test2_super(convGamma=args.convGamma)
+    elif args.model == 'embedded':
+        model = Attention_TestEmbeddedGaussian(convGamma=args.convGamma)
     else:
         model = Conv_Test(use_cuda)
 
