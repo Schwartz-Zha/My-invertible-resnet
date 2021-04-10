@@ -126,12 +126,12 @@ class Conv_Test(torch.nn.Module):
         return spectral_norm_fc(layer, coeff=.9, n_power_iterations=5)
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--epochs', type=int, default=20)
+parser.add_argument('--epochs', type=int, default=100)
 parser.add_argument('--batch', type=int, default=64)
 parser.add_argument('--save_dir', type=str, default='results/invattention_test')
 parser.add_argument('--show_image', type=bool, default=True)
 parser.add_argument('--model', type=str, default='concat')
-parser.add_argument('--inverse', type=int, default=100)
+parser.add_argument('--inverse', type=int, default=50)
 parser.add_argument('--convGamma', type=bool, default=True)
 
 def get_hms(seconds):
@@ -239,8 +239,8 @@ def main():
     inverse_input = model.inverse(output, maxIter=args.inverse)
 
 
-    torch.save(batch, os.path.join(img_dir, 'input_before.pt'))
-    torch.save(inverse_input, os.path.join(img_dir, 'inverse_input_before.pt'))
+    # torch.save(batch, os.path.join(img_dir, 'input_before.pt'))
+    # torch.save(inverse_input, os.path.join(img_dir, 'inverse_input_before.pt'))
 
     print(batch.size())
     print(output.size())
@@ -249,8 +249,8 @@ def main():
     batch = inverse_den_est(batch)
     inverse_input = inverse_den_est(inverse_input)
     
-    torch.save(batch, os.path.join(img_dir, 'input_after.pt'))
-    torch.save(inverse_input, os.path.join(img_dir, 'inverse_input_after.pt'))
+    # torch.save(batch, os.path.join(img_dir, 'input_after.pt'))
+    # torch.save(inverse_input, os.path.join(img_dir, 'inverse_input_after.pt'))
 
     if args.show_image:
         torchvision.utils.save_image(batch.cpu(),
