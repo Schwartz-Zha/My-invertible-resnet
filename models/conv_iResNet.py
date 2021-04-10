@@ -183,7 +183,7 @@ class scale_block(nn.Module):
         if do_attention:
             self.attention = InvAttention_concat(conv_shape[0], k=4, numTraceSamples=n_samples, numSeriesTerms=n_terms,
                                                  convGamma=True)
-            # self.attention = InvAttention_gaussian(conv_shape[0], k=4, numTraceSamples=n_samples, numSeriesTerms=n_terms,
+            # self.attention = InvAttention_gaussian(conv_shape[0], numTraceSamples=n_samples, numSeriesTerms=n_terms,
             #                                      convGamma=True)
             # self.attention = InvAttention_embedded_gaussian(conv_shape[0], k=4, numTraceSamples=n_samples, numSeriesTerms=n_terms,
             #                                      convGamma=True)
