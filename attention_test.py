@@ -75,10 +75,10 @@ class Attention_TestGaussian(torch.nn.Module):
         return lip
 
 class Attention_TestEmbeddedGaussian(torch.nn.Module):
-    def __init__(self):
+    def __init__(self, convGamma):
         super(Attention_TestEmbeddedGaussian, self).__init__()
         self.squeeze_layer = squeeze(2)
-        self.attention_layer = InvAttention_embedded_gaussian(12)
+        self.attention_layer = InvAttention_embedded_gaussian(12, convGamma=convGamma)
     def forward(self, x):
         x = self.squeeze_layer.forward(x)
         x = self.attention_layer.forward(x)[0]
