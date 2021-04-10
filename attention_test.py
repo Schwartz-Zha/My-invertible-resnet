@@ -2,7 +2,7 @@ import torch
 import torchvision
 from torchvision import transforms
 from models.model_utils import squeeze
-from models.inv_attention import InvAttention_dot2, InvAttention_dot3, InvAttention_concat, InvAttention_dot2_super
+from models.inv_attention import InvAttention_dot2, InvAttention_concat, InvAttention_dot2_super
 import argparse
 import time
 from torch.autograd import Variable
