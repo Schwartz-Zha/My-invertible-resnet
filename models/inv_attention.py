@@ -41,7 +41,7 @@ class Attention_gaussian(nn.Module):
 class InvAttention_gaussian(nn.Module):
     def __init__(self, input_channel_num, k=4, numTraceSamples=1, numSeriesTerms=5, convGamma = True):
         super(InvAttention_gaussian, self).__init__()
-        self.res_branch= Attention_gaussian(input_channel_num, k=k, convGamma=convGamma)
+        self.res_branch= Attention_gaussian(input_channel_num, convGamma=convGamma)
         self.numTraceSamples = numTraceSamples
         self.numSeriesTerms = numSeriesTerms
     def forward(self, x, ignore_logdet=False):
