@@ -202,7 +202,8 @@ class Attention_concat(nn.Module):
                                            coeff=.9, n_power_iterations=5)
         self.key_conv = spectral_norm_fc(nn.Conv2d(in_channels=self.in_c, out_channels=self.in_c // k, kernel_size=1),
                                          coeff=.9, n_power_iterations=5)
-        self.concat_conv = nn.Conv2d(in_channels=self.inter_c * 2, out_channels=1, kernel_size=1, bias=False)
+        self.concat_conv = spectral_norm_fc(nn.Conv2d(in_channels=self.inter_c * 2, out_channels=1, kernel_size=1, bias=False),
+                                            coeff=.9, n_power_iterations=5)
         self.value_conv = spectral_norm_fc(nn.Conv2d(in_channels=in_c, out_channels=in_c, kernel_size=1),
                                            coeff=.9, n_power_iterations=5)
         self.convGamma = convGamma
