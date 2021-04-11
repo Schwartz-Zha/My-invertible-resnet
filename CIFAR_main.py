@@ -16,6 +16,9 @@ import time
 import argparse
 import random
 import json
+from shutil import copyfile
+from os import listdir
+from os.path import isfile, join
 from models.utils_cifar import train, test, std, mean, get_hms, interpolate
 # from models.conv_iResNet import conv_iResNet as iResNet
 from models.conv_iResNet import multiscale_conv_iResNet as multiscale_iResNet
@@ -340,6 +343,23 @@ def main():
         f.write(json.dumps(args.__dict__))
 
     train_log = open(os.path.join(args.save_dir, "train_log.txt"), 'w')
+
+
+    #### Copy all project code
+    dst_dir = os.path.join(args.save_dir, 'code')
+    try_make_dir(dst_dir)
+    marco_src_path = './'
+    onlyfiles = [f for f in listdir(marco_src_path) if isfile(join(marco_src_path, f))]
+    pythonfiles = [f for f in onlyfiles if f.endswith('.py')]
+    for f in pythonfiles:
+        copyfile(f, os.path.join(dst_dir, f))
+    models_src_path = 'models/'
+    dst_dir = os.path.join(dst_dir, 'models')
+    try_make_dir(dst_dir)
+    onlyfiles = [f for f in listdir(models_src_path) if isfile(join(models_src_path, f))]
+    pythonfiles = [f for f in onlyfiles if f.endswith('.py')]
+    for f in pythonfiles:
+        copyfile(os.path.join(models_src_path, f), os.path.join(dst_dir, f))
 
     for epoch in range(1, 1+args.epochs):
         start_time = time.time()
