@@ -72,8 +72,8 @@ class Attention_embedded_gaussian(nn.Module):
     def __init__(self, input_channel_num, k=4, convGamma=True):
         super(Attention_embedded_gaussian, self).__init__()
         self.c_in = input_channel_num
-        self.query_conv = spectral_norm_fc(nn.Conv2d(in_channels=self.c_in, out_channels=self.c_in // k, kernel_size=1),coeff=.9, n_power_iterations=5)
-        self.key_conv = spectral_norm_fc(nn.Conv2d(in_channels=self.c_in, out_channels=self.c_in // k, kernel_size=1),coeff=.9, n_power_iterations=5)
+        self.query_conv = nn.Conv2d(in_channels=self.c_in, out_channels=self.c_in // k, kernel_size=1)
+        self.key_conv = nn.Conv2d(in_channels=self.c_in, out_channels=self.c_in // k, kernel_size=1)
         self.value_conv = spectral_norm_fc(nn.Conv2d(in_channels=self.c_in, out_channels=self.c_in, kernel_size=1),
                                            coeff=.5, n_power_iterations=5)
         self.convGamma = convGamma
