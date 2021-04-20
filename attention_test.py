@@ -153,10 +153,7 @@ def main():
         lambda x: x - 0.5
     ]
     test_chain = [transforms.ToTensor()]
-    train_chain = [transforms.Pad(4, padding_mode="symmetric"),
-                   transforms.RandomCrop(32),
-                   transforms.RandomHorizontalFlip(),
-                   transforms.ToTensor()]
+    train_chain = [transforms.ToTensor()]
     transform_train = transforms.Compose(train_chain + dens_est_chain)
     transform_test = transforms.Compose(test_chain + dens_est_chain)
 
