@@ -191,7 +191,7 @@ def main():
         model = model.cuda()
 
     target = torch.randn([args.batch, 12, 16, 16])
-    target = Variable(target)
+    #target = Variable(target)
     if use_cuda:
         target = target.cuda()
 
