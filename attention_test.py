@@ -171,9 +171,9 @@ def main():
             root='./data', train=False, download=True, transform=transform_test)
     elif args.dataset == 'svhn':
         trainset = torchvision.datasets.SVHN(
-            root='./data_svhn', split='train', download=True, transform=transform_train)
+            root='./data', split='train', download=True, transform=transform_train)
         testset = torchvision.datasets.SVHN(
-            root='./data_svhn', split='test', download=True, transform=transform_test)
+            root='./data', split='test', download=True, transform=transform_test)
 
     train_subset = torch.utils.data.Subset(trainset, list(range(1000)))
     test_subset = torch.utils.data.Subset(testset, list(range(1000)))
