@@ -174,6 +174,11 @@ def main():
             root='./data', split='train', download=True, transform=transform_train)
         testset = torchvision.datasets.SVHN(
             root='./data', split='test', download=True, transform=transform_test)
+    elif args.dataset == 'celebA':
+        trainset = torchvision.datasets.CelebA(
+            root='./data', split='train', download=True, transform=transform_train)
+        testset = torchvision.datasets.CelebA(
+            root='./data', split='test', download=True, transform=transform_test)
 
     train_subset = torch.utils.data.Subset(trainset, list(range(1000)))
     test_subset = torch.utils.data.Subset(testset, list(range(1000)))
@@ -199,6 +204,9 @@ def main():
         model = model.cuda()
 
     target = torch.randn([args.batch, 12, 16, 16])
+
+    if args.dataset == 'celebA':
+        target = torch.randn([args.batch, 12, 109, 89])
     #target = Variable(target)
     if use_cuda:
         target = target.cuda()
