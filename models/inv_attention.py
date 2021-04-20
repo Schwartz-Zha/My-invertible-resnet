@@ -72,10 +72,10 @@ class Attention_embedded_gaussian(nn.Module):
     def __init__(self, input_channel_num, k=4, convGamma=True):
         super(Attention_embedded_gaussian, self).__init__()
         self.c_in = input_channel_num
-        self.query_conv = nn.Conv2d(in_channels=self.c_in, out_channels=self.c_in // k, kernel_size=1)
-        self.key_conv = nn.Conv2d(in_channels=self.c_in, out_channels=self.c_in // k, kernel_size=1)
+        self.query_conv = spectral_norm_fc(nn.Conv2d(in_channels=self.c_in, out_channels=self.c_in // k, kernel_size=1),coeff=.9, n_power_iterations=5)
+        self.key_conv = spectral_norm_fc(nn.Conv2d(in_channels=self.c_in, out_channels=self.c_in // k, kernel_size=1), coeff=.9, n_power_iterations=5)
         self.value_conv = spectral_norm_fc(nn.Conv2d(in_channels=self.c_in, out_channels=self.c_in, kernel_size=1),
-                                           coeff=.3, n_power_iterations=5)
+                                           coeff=.9, n_power_iterations=5)
         self.convGamma = convGamma
         if convGamma:
             self.gamma = spectral_norm_fc(nn.Conv2d(in_channels=self.c_in, out_channels=self.c_in, kernel_size=1),
@@ -90,7 +90,7 @@ class Attention_embedded_gaussian(nn.Module):
         proj_key = self.key_conv(x).view(B, -1, H * W)  # [B, C//8, HW]
         energy = torch.bmm(proj_query, proj_key)  # Batch matrix multiplication, [B, HW, HW]
         energy = torch.exp(energy)
-        energy_sum = torch.sum(energy,dim=(1, 2), keepdim=True)
+        energy_sum = torch.sum(energy,dim=(1), keepdim=True)
         energy = energy / (1.5 * energy_sum) #hooray
         proj_value = self.value_conv(x).view(B, -1, H * W)  # [B, C, HW]
         out = torch.bmm(proj_value, energy).view(B, C, H, W)
