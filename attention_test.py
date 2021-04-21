@@ -9,7 +9,7 @@ from torch.autograd import Variable
 import numpy as np
 import os
 from spectral_norm_fc import spectral_norm_fc
-
+from celebA import CelebADataset
 
 class Attention_TestConcat(torch.nn.Module):
     def __init__(self, convGamma=False):
@@ -169,19 +169,21 @@ def main():
             root='./data', train=True, download=True, transform=transform_train)
         testset = torchvision.datasets.CIFAR10(
             root='./data', train=False, download=True, transform=transform_test)
+        train_subset = torch.utils.data.Subset(trainset, list(range(1000)))
+        test_subset = torch.utils.data.Subset(testset, list(range(1000)))
     elif args.dataset == 'svhn':
         trainset = torchvision.datasets.SVHN(
             root='./data', split='train', download=True, transform=transform_train)
         testset = torchvision.datasets.SVHN(
             root='./data', split='test', download=True, transform=transform_test)
+        train_subset = torch.utils.data.Subset(trainset, list(range(1000)))
+        test_subset = torch.utils.data.Subset(testset, list(range(1000)))
     elif args.dataset == 'celebA':
-        trainset = torchvision.datasets.CelebA(
-            root='./data', split='train', download=True, transform=transform_train)
-        testset = torchvision.datasets.CelebA(
-            root='./data', split='test', download=True, transform=transform_test)
+        dataset = CelebADataset('./data', transform=transform_train)
+        length = len(dataset)
+        train_subset = torch.utils.data.Subset(dataset, list(range(1000)))
+        test_subset = torch.utils.data.Subset(dataset, length - list(range(1000)))
 
-    train_subset = torch.utils.data.Subset(trainset, list(range(1000)))
-    test_subset = torch.utils.data.Subset(testset, list(range(1000)))
 
     trainloader = torch.utils.data.DataLoader(train_subset, batch_size=args.batch,
                                               shuffle=True, num_workers=2,drop_last=True,
