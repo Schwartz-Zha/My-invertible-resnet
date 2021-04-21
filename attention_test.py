@@ -219,7 +219,7 @@ def main():
     optim = torch.optim.Adam(model.parameters(), lr=0.003, weight_decay=0.0)
 
     elapsed_time = 0.
-    if args.dataset is not 'celebA':
+    if args.dataset != 'celebA':
         for epoch in range(1, args.epochs + 1):
             start_time = time.time()
 
@@ -257,7 +257,7 @@ def main():
     # Test if the model is invertible
     batch = None
 
-    if args.dataset is not 'celebA':
+    if args.dataset != 'celebA':
         for batch_idx, (inputs, targets) in enumerate(testloader):
             batch = inputs
             batch = Variable(batch, requires_grad=True)
