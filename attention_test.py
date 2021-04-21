@@ -182,7 +182,7 @@ def main():
         dataset = CelebADataset('./data', transform=transform_train)
         length = len(dataset)
         train_subset = torch.utils.data.Subset(dataset, list(range(1000)))
-        test_subset = torch.utils.data.Subset(dataset, length - list(range(1000)))
+        test_subset = torch.utils.data.Subset(dataset, [length - i for i in list(range(1000))])
 
 
     trainloader = torch.utils.data.DataLoader(train_subset, batch_size=args.batch,
