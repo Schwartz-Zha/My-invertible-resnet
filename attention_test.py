@@ -222,7 +222,7 @@ def main():
     for epoch in range(1, args.epochs + 1):
         start_time = time.time()
 
-        for batch_idx, (inputs, targets) in enumerate(trainloader):
+        for batch_idx, (inputs, _) in enumerate(trainloader):
             optim.zero_grad()
             if use_cuda:
                 inputs = inputs.cuda()
