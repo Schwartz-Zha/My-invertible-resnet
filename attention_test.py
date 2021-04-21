@@ -219,32 +219,58 @@ def main():
     optim = torch.optim.Adam(model.parameters(), lr=0.003, weight_decay=0.0)
 
     elapsed_time = 0.
-    for epoch in range(1, args.epochs + 1):
-        start_time = time.time()
+    if args.dataset is not 'celebA':
+        for epoch in range(1, args.epochs + 1):
+            start_time = time.time()
 
-        for batch_idx, (inputs, _) in enumerate(trainloader):
-            optim.zero_grad()
-            if use_cuda:
-                inputs = inputs.cuda()
-            inputs = Variable(inputs, requires_grad=True)
-            output = model.forward(inputs)
-            loss = criterion(output, target)
-            loss.backward()
-            optim.step()
+            for batch_idx, (inputs, _) in enumerate(trainloader):
+                optim.zero_grad()
+                if use_cuda:
+                    inputs = inputs.cuda()
+                inputs = Variable(inputs, requires_grad=True)
+                output = model.forward(inputs)
+                loss = criterion(output, target)
+                loss.backward()
+                optim.step()
 
-        epoch_time = time.time() - start_time
-        elapsed_time += epoch_time
-        print('| Elapsed time : %d:%02d:%02d' % (get_hms(elapsed_time)))
+            epoch_time = time.time() - start_time
+            elapsed_time += epoch_time
+            print('| Elapsed time : %d:%02d:%02d' % (get_hms(elapsed_time)))
+    else:
+        for epoch in range(1, args.epochs + 1):
+            start_time = time.time()
+            for batch_idx, inputs in enumerate(trainloader):
+                optim.zero_grad()
+                if use_cuda:
+                    inputs = inputs.cuda()
+                inputs = Variable(inputs, requires_grad=True)
+                output = model.forward(inputs)
+                loss = criterion(output, target)
+                loss.backward()
+                optim.step()
+
+            epoch_time = time.time() - start_time
+            elapsed_time += epoch_time
+            print('| Elapsed time : %d:%02d:%02d' % (get_hms(elapsed_time)))
+
 
     # Test if the model is invertible
     batch = None
 
-    for batch_idx, (inputs, targets) in enumerate(testloader):
-        batch = inputs
-        batch = Variable(batch, requires_grad=True)
-        if use_cuda:
-            batch = batch.cuda()
-        break
+    if args.dataset is not 'celebA':
+        for batch_idx, (inputs, targets) in enumerate(testloader):
+            batch = inputs
+            batch = Variable(batch, requires_grad=True)
+            if use_cuda:
+                batch = batch.cuda()
+            break
+    else:
+        for batch_idx, inputs in enumerate(testloader):
+            batch = inputs
+            batch = Variable(batch, requires_grad=True)
+            if use_cuda:
+                batch = batch.cuda()
+            break
 
     model = model.eval()
     img_dir = os.path.join(args.save_dir, 'ims')
