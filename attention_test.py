@@ -209,8 +209,8 @@ def main():
 
     target = torch.randn([args.batch, 12, 16, 16])
 
-    if args.dataset == 'celebA':
-        target = torch.randn([args.batch, 12, 109, 89])
+    # if args.dataset == 'celebA':
+    #     target = torch.randn([args.batch, 12, 109, 89])
     #target = Variable(target)
     if use_cuda:
         target = target.cuda()
