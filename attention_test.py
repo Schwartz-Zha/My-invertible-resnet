@@ -179,7 +179,7 @@ def main():
         train_subset = torch.utils.data.Subset(trainset, list(range(1000)))
         test_subset = torch.utils.data.Subset(testset, list(range(1000)))
     elif args.dataset == 'celebA':
-        resize_chain = [transforms.CenterCrop(178, 178), transforms.Resize(32, 32)]
+        resize_chain = [transforms.CenterCrop((178, 178)), transforms.Resize((32, 32))]
         transform_train = transforms.Compose(train_chain + dens_est_chain +  resize_chain)
         dataset = CelebADataset('./data', transform=transform_train)
         length = len(dataset)
