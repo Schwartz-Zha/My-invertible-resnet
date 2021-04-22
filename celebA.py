@@ -17,7 +17,6 @@ class CelebADataset(torch.utils.data.Dataset):
         if torch.is_tensor(idx):
             idx = idx.tolist()
         images = Image.open(self.img_files[idx])
-        data = np.asarray(images)
         if self.transform is not None:
-            data = self.transform(data)
+            data = self.transform(images)
         return data
