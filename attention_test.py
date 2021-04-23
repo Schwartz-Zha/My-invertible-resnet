@@ -309,6 +309,8 @@ def main():
     if args.cmp:
         data_dir = os.path.join(args.save_dir, 'data')
         recon_dir = os.path.join(args.save_dir, 'recon')
+        try_make_dir(data_dir)
+        try_make_dir(recon_dir)
 
         if args.dataset != 'celebA':
             for batch_idx, (inputs, targets) in enumerate(testloader):
