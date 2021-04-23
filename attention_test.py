@@ -134,7 +134,7 @@ parser.add_argument('--show_image', type=bool, default=True)
 parser.add_argument('--model', type=str, default='concat')
 parser.add_argument('--inverse', type=int, default=50)
 parser.add_argument('--convGamma', type=bool, default=True)
-
+parser.add_argument('--cmp', type =bool, default=False)
 def get_hms(seconds):
     m, s = divmod(seconds, 60)
     h, m = divmod(m, 60)
@@ -305,6 +305,41 @@ def main():
 
     print("lipschitz constant of atttention: " + str(model.inspect_lip(batch)))
     print('reconstruction loss: ' + str(torch.dist(batch, inverse_input)))
+
+    if args.cmp:
+        data_dir = os.path.join(args.save_dir, 'data')
+        recon_dir = os.path.join(args.save_dir, 'recon')
+
+        if args.dataset != 'celebA':
+            for batch_idx, (inputs, targets) in enumerate(testloader):
+                batch = Variable(inputs, requires_grad=True)
+                if use_cuda:
+                    batch = batch.cuda()
+                output = model(batch)
+                inverse_input = model.inverse(output, maxIter=args.inverse)
+                batch = inverse_den_est(batch)
+                inverse_input = inverse_den_est(inverse_input)
+                for i in range(args.batch):
+                    index = batch_idx * args.batch + i
+                    torchvision.utils.save_image(batch[i].cpu(),
+                                                 os.path.join(data_dir, "data_" +str(index)+ ".jpg"), normalize=False)
+                    torchvision.utils.save_image(inverse_input[i].cpu(),
+                                                 os.path.join(recon_dir, "recon_" + str(index) + ".jpg"), normalize=False)
+        else:
+            for batch_idx, inputs in enumerate(testloader):
+                batch = Variable(inputs, requires_grad=True)
+                if use_cuda:
+                    batch = batch.cuda()
+                output = model(batch)
+                inverse_input = model.inverse(output, maxIter=args.inverse)
+                batch = inverse_den_est(batch)
+                inverse_input = inverse_den_est(inverse_input)
+                for i in range(args.batch):
+                    index = batch_idx * args.batch + i
+                    torchvision.utils.save_image(batch[i].cpu(),
+                                                 os.path.join(data_dir, "data_" + str(index) + ".jpg"), normalize=False)
+                    torchvision.utils.save_image(inverse_input[i].cpu(),
+                                                 os.path.join(recon_dir, "recon_" + str(index) + ".jpg"), normalize=False)
 
 
 if __name__ == '__main__':
