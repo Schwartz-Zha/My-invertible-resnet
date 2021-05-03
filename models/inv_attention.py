@@ -223,7 +223,7 @@ class Attention_concat(nn.Module):
         proj_query = proj_query.repeat(1, 1, 1, H * W)
         proj_key = proj_key.repeat(1, 1, H * W, 1)
         concat_feature = torch.cat([proj_query, proj_key], dim=1)  # [B, 2*inter_c, HW, HW]
-        energy = self.concat_conv(concat_feature).squeeze()  # [B,  HW, HW]
+        energy = self.concat_conv(concat_feature).squeeze().resape(B, H*W, H*W)  # [B,  HW, HW]
         energy = self.nonlin_1(energy)
         energy = energy / (1.5 * torch.sum(energy, dim=(1), keepdim=True))
         proj_value = self.value_conv(x).view(B, -1, H * W)
