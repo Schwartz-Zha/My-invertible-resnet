@@ -62,6 +62,25 @@ class InvAttention_gaussian(nn.Module):
             return x
 
 
+class NormalAttention_gaussian(nn.Module):
+    def __init__(self, input_channel_num):
+        super(NormalAttention_gaussian, self).__init__()
+        self.c_in = input_channel_num
+        self.value_conv = nn.Conv2d(in_channels=self.c_in, out_channels=self.c_in, kernel_size=1)
+        self.gamma = nn.Conv2d(in_channels=self.c_in, out_channels=self.c_in, kernel_size=1)
+
+    def forward(self, x):
+        B, C, H, W = x.size()
+        proj_query = x.view(B, -1, H * W).permute(0, 2, 1)  # [B, HW, C//8]
+        proj_key = x.view(B, -1, H * W)  # [B, C//8, HW]
+        energy = torch.bmm(proj_query, proj_key)  # Batch matrix multiplication, [B, HW, HW]
+        energy = torch.exp(energy)
+        energy_sum = torch.sum(energy, dim=(2), keepdim=True)
+        energy = energy / energy_sum # hooray
+        proj_value = self.value_conv(x).view(B, -1, H * W)  # [B, C, HW]
+        out = torch.bmm(proj_value, energy).view(B, C, H, W)
+        out = self.gamma(out)
+        return out
 
 
 
@@ -124,6 +143,27 @@ class InvAttention_embedded_gaussian(nn.Module):
             return x
 
 
+class NormalAttention_embedded_gaussian(nn.Module):
+    def __init__(self, input_channel_num, k=4):
+        super(NormalAttention_embedded_gaussian, self).__init__()
+        self.c_in = input_channel_num
+        self.query_conv = nn.Conv2d(in_channels=self.c_in, out_channels=self.c_in // k, kernel_size=1)
+        self.key_conv = nn.Conv2d(in_channels=self.c_in, out_channels=self.c_in // k, kernel_size=1)
+        self.value_conv = nn.Conv2d(in_channels=self.c_in, out_channels=self.c_in, kernel_size=1)
+        self.gamma = nn.Conv2d(in_channels=self.c_in, out_channels=self.c_in, kernel_size=1)
+
+    def forward(self, x):
+        B, C, H, W = x.size()
+        proj_query = self.query_conv(x).view(B, -1, H * W).permute(0, 2, 1)  # [B, HW, C//8]
+        proj_key = self.key_conv(x).view(B, -1, H * W)  # [B, C//8, HW]
+        energy = torch.bmm(proj_query, proj_key)  # Batch matrix multiplication, [B, HW, HW]
+        energy = torch.exp(energy)
+        energy_sum = torch.sum(energy, dim=(2), keepdim=True)
+        energy = energy /  energy_sum  # hooray
+        proj_value = self.value_conv(x).view(B, -1, H * W)  # [B, C, HW]
+        out = torch.bmm(proj_value, energy).view(B, C, H, W)
+        out = self.gamma(out)
+        return out
 
 
 
@@ -188,6 +228,26 @@ class InvAttention_dot(nn.Module):
                 x = y - summand
             return x
 
+class NormalAttention_dot(nn.Module):
+    def __init__(self, input_channel_num, k=4):
+        super(NormalAttention_dot, self).__init__()
+        self.c_in = input_channel_num
+        self.query_conv = nn.Conv2d(in_channels=self.c_in, out_channels=self.c_in // k, kernel_size=1)
+        self.key_conv = nn.Conv2d(in_channels=self.c_in, out_channels=self.c_in // k, kernel_size=1)
+        self.value_conv = nn.Conv2d(in_channels=self.c_in, out_channels=self.c_in, kernel_size=1)
+        self.nonlin = nn.ELU()
+        self.gamma = nn.Conv2d(in_channels=self.c_in, out_channels=self.c_in, kernel_size=1)
+    def forward(self, x):
+        B, C, H, W = x.size()
+        proj_query = self.query_conv(x).view(B, -1, H * W).permute(0, 2, 1)  # [B, HW, C//8]
+        proj_key = self.key_conv(x).view(B, -1, H * W)  # [B, C//8, HW]
+        energy = torch.bmm(proj_query, proj_key)  # Batch matrix multiplication, [B, HW, HW]
+        energy = self.nonlin(energy)
+        energy = energy / (H*W)
+        proj_value = self.value_conv(x).view(B, -1, H * W)  # [B, C, HW]
+        out = torch.bmm(proj_value, energy).view(B, C, H, W)
+        out = self.gamma(out)
+        return out
 
 class Attention_concat(nn.Module):
     '''
@@ -262,6 +322,26 @@ class InvAttention_concat(nn.Module):
             return x
 
 
-
-
+class NormalAttention_concat(nn.Module):
+    def __init__(self, in_c, k=4):
+        self.in_c = in_c
+        self.inter_c = in_c // k
+        self.query_conv = nn.Conv2d(in_channels=self.in_c, out_channels=self.in_c // k, kernel_size=1)
+        self.key_conv = nn.Conv2d(in_channels=self.in_c, out_channels=self.in_c // k, kernel_size=1)
+        self.concat_conv = nn.Conv2d(in_channels=self.inter_c * 2, out_channels=1, kernel_size=1, bias=False)
+        self.value_conv = nn.Conv2d(in_channels=in_c, out_channels=in_c, kernel_size=1)
+        self.gamma = nn.Conv2d(in_channels=in_c, out_channels=in_c, kernel_size=1)
+    def forward(self, x):
+        B, C, H, W = x.size()
+        proj_query = self.query_conv(x).view(B, self.inter_c, -1, 1)  # [B, inter_c, HW, 1]
+        proj_key = self.key_conv(x).view(B, self.inter_c, 1, -1)  # [B, inter_c, 1, HW]
+        proj_query = proj_query.repeat(1, 1, 1, H * W)
+        proj_key = proj_key.repeat(1, 1, H * W, 1)
+        concat_feature = torch.cat([proj_query, proj_key], dim=1)  # [B, 2*inter_c, HW, HW]
+        energy = self.concat_conv(concat_feature).squeeze()  # [B,  HW, HW]
+        energy = energy / (H*W)
+        proj_value = self.value_conv(x).view(B, -1, H * W)
+        out = torch.bmm(proj_value, energy).view(B, -1, H, W)
+        out = self.gamma(out)
+        return out
 
