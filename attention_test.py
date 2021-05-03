@@ -21,7 +21,7 @@ class Attention_TestConcat(torch.nn.Module):
 
     def forward(self, x):
         x = self.squeeze_layer.forward(x)
-        x = self.attention_layer.forward(x)[0]
+        x = self.attention_layer.forward(x, ignore_logdet=True)[0]
         return x
 
     def inverse(self, x, maxIter=100):
@@ -46,7 +46,7 @@ class Attention_TestDot(torch.nn.Module):
 
     def forward(self, x):
         x = self.squeeze_layer.forward(x)
-        x = self.attention_layer.forward(x)[0]
+        x = self.attention_layer.forward(x, ignore_logdet=True)[0]
         return x
 
     def inverse(self, x, maxIter=100):
@@ -71,7 +71,7 @@ class Attention_TestGaussian(torch.nn.Module):
 
     def forward(self, x):
         x = self.squeeze_layer.forward(x)
-        x = self.attention_layer.forward(x)[0]
+        x = self.attention_layer.forward(x, ignore_logdet=True)[0]
         return x
 
     def inverse(self, x, maxIter=100):
@@ -96,7 +96,7 @@ class Attention_TestEmbeddedGaussian(torch.nn.Module):
 
     def forward(self, x):
         x = self.squeeze_layer.forward(x)
-        x = self.attention_layer.forward(x)[0]
+        x = self.attention_layer.forward(x, ignore_logdet=True)[0]
         return x
 
     def inverse(self, x, maxIter=100):
