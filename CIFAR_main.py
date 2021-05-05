@@ -68,6 +68,7 @@ parser.add_argument('-log_verbose', '--log_verbose', dest='log_verbose', action=
                     help='verbose logging: sigmas, max gradient')
 parser.add_argument('-deterministic', '--deterministic', dest='deterministic', action='store_true', default=True,
                     help='fix random seeds and set cuda deterministic')
+parser.add_argument('--gen', type=bool, default=False, help='Whether generate 1000 images after training for evaluation')
 
 
 def try_make_dir(d):
@@ -376,7 +377,7 @@ def main():
 
     print('Testing model')
     test_log = open(os.path.join(args.save_dir, "test_log.txt"), 'w')
-    test_objective = test(test_objective, args, model, epoch, testloader, viz, use_cuda, test_log, inverse_den_est)
+    test_objective = test(test_objective, args, model, epoch, testloader, viz, use_cuda, test_log, inverse_den_est, gen)
     print('* Test results : objective = %.2f%%' % (test_objective))
     with open(os.path.join(args.save_dir, 'final.txt'), 'w') as f:
         f.write(str(test_objective))

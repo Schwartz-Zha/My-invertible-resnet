@@ -169,10 +169,15 @@ def train(args, model, optimizer, epoch, trainloader, trainset, viz, use_cuda, t
                         line_plot(viz, "min prior scale", cur_iter, prior_scales_min.item())
 
 
-def test(best_result, args, model, epoch, testloader, viz, use_cuda, test_log, inverse_transform):
+def test(best_result, args, model, epoch, testloader, viz, use_cuda, test_log, inverse_transform, gen):
     model.eval()
     objective = 0.
     total = 0
+
+    gen_dir = os.path.join(args.save_dir, 'gen')
+    try_make_dir(gen_dir)
+
+
     for batch_idx, (inputs, targets) in enumerate(testloader):
         if use_cuda:
             inputs, targets = inputs.cuda(), targets.cuda()
@@ -222,6 +227,22 @@ def test(best_result, args, model, epoch, testloader, viz, use_cuda, test_log, i
                 images_plot(viz, "recons", out_im(x_re).cpu())
                 images_plot(viz, "samples", out_im(samples).cpu())
             del x_re, err, samples
+
+
+            # Sample 1000 images for evaluation
+            if gen:
+                for i in range(10):
+                    if not args.use_label:
+                        samples = model.module.sample(bs, 100) if use_cuda else model.sample(bs, 100)
+                    else:
+                        samples = model.module.sample(10, 100) if use_cuda else model.sample(10, 100)
+
+                    samples = inverse_transform(samples).cpu()
+
+                    for j in range(samples.size()[0]):
+                        torchvision.utils.save_image(samples[j, :, :, :],
+                                                     os.path.join(gen_dir, 'sample_{}.jpg'.format(i*100+j)))
+                
 
         del z, logpz, trace, logpx, loss
 
