@@ -377,7 +377,7 @@ def main():
 
     print('Testing model')
     test_log = open(os.path.join(args.save_dir, "test_log.txt"), 'w')
-    test_objective = test(test_objective, args, model, epoch, testloader, viz, use_cuda, test_log, inverse_den_est, gen)
+    test_objective = test(test_objective, args, model, epoch, testloader, viz, use_cuda, test_log, inverse_den_est, args.gen)
     print('* Test results : objective = %.2f%%' % (test_objective))
     with open(os.path.join(args.save_dir, 'final.txt'), 'w') as f:
         f.write(str(test_objective))

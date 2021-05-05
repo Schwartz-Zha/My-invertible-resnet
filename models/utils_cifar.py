@@ -242,7 +242,7 @@ def test(best_result, args, model, epoch, testloader, viz, use_cuda, test_log, i
                     for j in range(samples.size()[0]):
                         torchvision.utils.save_image(samples[j, :, :, :],
                                                      os.path.join(gen_dir, 'sample_{}.jpg'.format(i*100+j)))
-                
+
 
         del z, logpz, trace, logpx, loss
 
