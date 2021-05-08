@@ -181,14 +181,14 @@ class scale_block(nn.Module):
         self.stack = self._make_stack(steps, n_terms, n_samples, conv_shape, int_dim,
                                       input_nonlin, coeff, actnorm, n_power_iter, nonlin)
         if do_attention:
-            self.attention = InvAttention_concat(conv_shape[0], k=4, numTraceSamples=n_samples, numSeriesTerms=n_terms,
-                                                 convGamma=True)
+            #self.attention = InvAttention_concat(conv_shape[0], k=4, numTraceSamples=n_samples, numSeriesTerms=n_terms,
+            #                                     convGamma=True)
             # self.attention = InvAttention_gaussian(conv_shape[0]  , numTraceSamples=n_samples, numSeriesTerms=n_terms,
             #                                      convGamma=True)
             # self.attention = InvAttention_embedded_gaussian(conv_shape[0], k=4, numTraceSamples=n_samples, numSeriesTerms=n_terms,
             #                                      convGamma=True)
-            # self.attention = InvAttention_dot(conv_shape[0], k=4, numTraceSamples=n_samples, numSeriesTerms=n_terms,
-            #                                      convGamma=True)
+            self.attention = InvAttention_dot(conv_shape[0], k=4, numTraceSamples=n_samples, numSeriesTerms=n_terms,
+                                                  convGamma=True)
         else:
             self.attention = None
 
