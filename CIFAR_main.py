@@ -22,6 +22,7 @@ from os.path import isfile, join
 from models.utils_cifar import train, test, std, mean, get_hms, interpolate
 # from models.conv_iResNet import conv_iResNet as iResNet
 from models.conv_iResNet import multiscale_conv_iResNet as multiscale_iResNet
+from cifar import CifarSingleDataset
 
 parser = argparse.ArgumentParser(description='Train i-ResNet/ResNet on Cifar')
 parser.add_argument('--optimizer', default="adamax", type=str, help="optimizer", choices=["adam", "adamax", "sgd"])
@@ -69,7 +70,7 @@ parser.add_argument('-log_verbose', '--log_verbose', dest='log_verbose', action=
 parser.add_argument('-deterministic', '--deterministic', dest='deterministic', action='store_true', default=True,
                     help='fix random seeds and set cuda deterministic')
 parser.add_argument('--gen', type=bool, default=False, help='Whether generate 1000 images after training for evaluation')
-
+parser.add_argument('--single_label', type=bool, default=False)
 
 def try_make_dir(d):
     if not os.path.isdir(d):
@@ -188,6 +189,10 @@ def main():
         testset = torchvision.datasets.CIFAR10(
             root='./data', train=False, download=True, transform=transform_test)
         args.nClasses = 10
+        if args.single_label:
+            trainset = CifarSingleDataset('/home/billy/Downloads/CIFAR-10-images/train/airplane', transform=transform_train)
+            testset = CifarSingleDataset('/home/billy/Downloads/CIFAR-10-images/test/airplane', transform=transform_test)
+
     elif args.dataset == 'cifar100':
         train_chain = [transforms.Pad(4, padding_mode="symmetric"),
                        transforms.RandomCrop(32),
